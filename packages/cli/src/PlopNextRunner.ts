@@ -1,0 +1,414 @@
+import { createSpinner } from "nanospinner";
+import pc from "picocolors";
+import { select, Separator } from "@inquirer/prompts";
+import type { PlopNextCore, PlopPrompt } from "@plop-next/core";
+
+export interface RunnerOptions {
+  /** Base directory for generated files (--dest). */
+  dest?: string;
+  /** Overwrite existing files without error (--force). */
+  force?: boolean;
+  /** Show action progress spinners (default: true). */
+  progress?: boolean;
+  /** Show full action type names instead of symbols (--show-type-names). */
+  showTypeNames?: boolean;
+  /** Positional bypass values consumed in prompt order. */
+  bypassPositionals?: string[];
+  /** Named bypass values keyed by prompt name. */
+  bypassNamed?: Record<string, string | boolean>;
+}
+
+/**
+ * Interactive runner: displays the generator menu and executes the chosen one.
+ */
+export class PlopNextRunner {
+  private bypassIndex = 0;
+  private readonly bypassPositionals: readonly string[];
+  private readonly bypassNamed: Map<string, string | boolean>;
+
+  constructor(
+    private readonly core: PlopNextCore,
+    private readonly opts: RunnerOptions = {},
+  ) {
+    this.bypassPositionals = opts.bypassPositionals ?? [];
+    this.bypassNamed = new Map(Object.entries(opts.bypassNamed ?? {}));
+  }
+
+  async run(generatorName?: string): Promise<void> {
+    try {
+      const list = this.core.getGeneratorList();
+
+      if (list.length === 0) {
+        console.error(
+          pc.red(this.core.t("cli.noGenerators", [], "No generators registered. Add some to your plopfile.")),
+        );
+        process.exit(1);
+      }
+
+      // ── Choose generator ─────────────────────────────────────────────
+      let chosen: string;
+
+      if (generatorName) {
+        if (!this.core.getGenerator(generatorName)) {
+          console.error(
+            pc.red(this.core.t("cli.generatorNotFound", [generatorName], `Generator \"${generatorName}\" not found.`)),
+          );
+          process.exit(1);
+        }
+        chosen = generatorName;
+      } else if (list.length === 1 && list[0]) {
+        chosen = list[0].name;
+      } else {
+        const welcomeMessage = this.core.getWelcomeMessage();
+        if (welcomeMessage) {
+          console.log(pc.dim(welcomeMessage));
+        }
+
+        chosen = await select<string>({
+          message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
+          choices: [
+            ...list.map((g) => {
+              // Translate generator description if available
+              const translatedDescription = this.core.t(
+                `${g.name}.description`,
+                [],
+                g.description || undefined,
+              );
+
+              return {
+                name:
+                  translatedDescription && translatedDescription !== `${g.name}.description`
+                    ? `${g.name} ${pc.dim(`- ${translatedDescription}`)}`
+                    : g.name,
+                value: g.name,
+              };
+            }),
+            new Separator(),
+          ],
+        });
+      }
+
+      await this.runGenerator(chosen);
+    } catch (error) {
+      if (this.isPromptCancelled(error)) {
+        console.log(pc.yellow(`\n${this.core.t("cli.promptCancelled", [], "Console exited by user.")}`));
+        process.exit(1);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  // ── Private ──────────────────────────────────────────────────────
+
+  private async runGenerator(name: string): Promise<void> {
+    const config = this.core.getGenerator(name);
+    if (!config) {
+      console.error(pc.red(this.core.t("cli.generatorNotFound", [name], `Generator "${name}" not found.`)));
+      process.exit(1);
+    }
+
+    console.log("\n" + pc.cyan(pc.bold(name)));
+
+    // ── Run prompts ──────────────────────────────────────────────────
+    const preparedPrompts = this.core.preparePrompts(name, config.prompts);
+    const answers: Record<string, unknown> = {};
+
+    for (const rawPrompt of preparedPrompts) {
+      const prompt = await this.resolvePrompt(rawPrompt, answers);
+
+      if (!prompt) {
+        continue;
+      }
+
+      const {
+        type,
+        name: promptName,
+        filter: filterFn,
+        askAnswered,
+        when: _when,
+        // plop-next only fields, not passed to inquirer
+        ...inquirerConfig
+      } = prompt;
+
+      const promptType = typeof type === "string" ? type : "input";
+
+      if (typeof promptName !== "string" || promptName.length === 0) {
+        throw new Error("Prompt name must be a non-empty string.");
+      }
+
+      // Skip if answer already exists and askAnswered is not true
+      if (answers.hasOwnProperty(promptName) && !askAnswered) {
+        continue;
+      }
+
+      const bypass = this.consumeBypass(promptName);
+
+      let value: unknown;
+      if (typeof bypass !== "undefined") {
+        value = this.coerceBypassValue(promptType, bypass, inquirerConfig, promptName);
+      } else {
+        // Dynamically import the right inquirer prompt.
+        value = await this.askPrompt(promptType, promptName, inquirerConfig as Record<string, unknown>);
+      }
+
+      // Apply plop-next filter if provided
+      if (typeof filterFn === "function") {
+        value = filterFn(value, answers);
+      }
+
+      answers[promptName] = value;
+    }
+
+    // ── Run actions (business logic is in core) ─────────────────────
+    const showProgress = this.opts.progress !== false;
+    const actions = await this.core.resolveActions(config.actions, answers);
+    const { steps, failed } = await this.core.executeActions(actions, answers, {
+      dest: this.opts.dest,
+      force: this.opts.force,
+    });
+
+    for (const step of steps) {
+      if (step.type === "comment") {
+        console.log(pc.dim(step.message));
+        continue;
+      }
+
+      const labelRaw = this.core.getActionTypeDisplay(step.type, this.opts.showTypeNames);
+      const label = this.opts.showTypeNames ? pc.dim(labelRaw) : this.colorizeActionLabel(step.type, labelRaw);
+      const target = this.core.formatActionTargetForDisplay(step.path ?? step.message);
+      const text = `${label} ${pc.dim(target)}`;
+
+      if (step.status === "success") {
+        if (showProgress) {
+          createSpinner("Running action").success({ text });
+        } else {
+          console.log(`${pc.green("✔")}  ${text}`);
+        }
+      } else if (showProgress) {
+        createSpinner("Running action").error({ text: pc.red(step.message) });
+      } else {
+        console.error(pc.red(step.message));
+      }
+    }
+
+    if (!failed && steps.length === 0) {
+      const text = pc.green(this.core.t("cli.done", [], "Done!"));
+      console.log(text);
+    }
+  }
+
+  private async askPrompt(
+    type: string,
+    name: string,
+    inquirerConfig: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.core.askPrompt(type, { name, ...inquirerConfig });
+  }
+
+  private async resolvePrompt(
+    prompt: PlopPrompt,
+    answers: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | undefined> {
+    const shouldAsk = await this.resolveWhen(prompt.when, answers);
+    if (!shouldAsk) {
+      return undefined;
+    }
+
+    const resolved: Record<string, unknown> = { ...(prompt as unknown as Record<string, unknown>) };
+
+    if (typeof prompt.message === "function") {
+      resolved["message"] = String(prompt.message(answers));
+    }
+
+    if (typeof prompt.default === "function") {
+      resolved["default"] = await (prompt.default as (a: Record<string, unknown>) => Promise<unknown>)(answers);
+    }
+
+    const rawChoices = (prompt as unknown as Record<string, unknown>)["choices"];
+    if (typeof rawChoices === "function") {
+      resolved["choices"] = await (rawChoices as (a: Record<string, unknown>) => Promise<unknown>)(answers);
+    }
+
+    return resolved;
+  }
+
+  private consumeBypass(promptName: string): string | undefined {
+    if (this.bypassNamed.has(promptName)) {
+      const raw = this.bypassNamed.get(promptName);
+      this.bypassNamed.delete(promptName);
+      return typeof raw === "string" ? raw : String(raw);
+    }
+
+    if (this.bypassIndex >= this.bypassPositionals.length) {
+      return undefined;
+    }
+
+    const raw = this.bypassPositionals[this.bypassIndex];
+    this.bypassIndex += 1;
+
+    if (raw === "_") {
+      return undefined;
+    }
+
+    return raw;
+  }
+
+  private coerceBypassValue(
+    promptType: string,
+    raw: string,
+    inquirerConfig: Record<string, unknown>,
+    promptName: string,
+  ): unknown {
+    if (promptType === "confirm") {
+      const normalized = raw.trim().toLowerCase();
+      if (["1", "y", "yes", "t", "true"].includes(normalized)) return true;
+      if (["0", "n", "no", "f", "false"].includes(normalized)) return false;
+      throw new Error(`Cannot bypass confirm prompt "${promptName}" with value "${raw}".`);
+    }
+
+    if (promptType === "number") {
+      const num = Number(raw);
+      if (Number.isFinite(num)) {
+        return num;
+      }
+      throw new Error(`Cannot bypass number prompt "${promptName}" with value "${raw}".`);
+    }
+
+    if (promptType === "list" || promptType === "select" || promptType === "rawlist" || promptType === "expand") {
+      return this.resolveChoiceBypassValue(raw, inquirerConfig, promptName, promptType);
+    }
+
+    if (promptType === "checkbox") {
+      const tokens = raw
+        .split(",")
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+      return tokens.map((token) =>
+        this.resolveChoiceBypassValue(token, inquirerConfig, promptName, promptType),
+      );
+    }
+
+    return raw;
+  }
+
+  private resolveChoiceBypassValue(
+    raw: string,
+    inquirerConfig: Record<string, unknown>,
+    promptName: string,
+    promptType: string,
+  ): unknown {
+    const choices = inquirerConfig["choices"];
+    if (!Array.isArray(choices)) {
+      throw new Error(
+        `Cannot bypass ${promptType} prompt "${promptName}": resolved choices are missing or invalid.`,
+      );
+    }
+
+    const choiceList = choices.filter((choice) => {
+      if (typeof choice === "string") {
+        return true;
+      }
+      if (!choice || typeof choice !== "object") {
+        return false;
+      }
+      return (choice as { type?: unknown }).type !== "separator";
+    });
+
+    const asNumber = Number(raw);
+    if (Number.isInteger(asNumber) && asNumber >= 1 && asNumber <= choiceList.length) {
+      return this.choiceValue(choiceList[asNumber - 1]);
+    }
+
+    if (Number.isInteger(asNumber) && asNumber >= 0 && asNumber < choiceList.length) {
+      return this.choiceValue(choiceList[asNumber]);
+    }
+
+    for (const choice of choiceList) {
+      if (typeof choice === "string") {
+        if (choice === raw) return choice;
+        continue;
+      }
+
+      const record = choice as Record<string, unknown>;
+
+      if (typeof record["value"] !== "undefined" && String(record["value"]) === raw) {
+        return record["value"];
+      }
+
+      if (typeof record["key"] !== "undefined" && String(record["key"]) === raw) {
+        return this.choiceValue(record);
+      }
+
+      if (typeof record["name"] !== "undefined" && String(record["name"]) === raw) {
+        return this.choiceValue(record);
+      }
+    }
+
+    throw new Error(`Cannot match bypass value "${raw}" for ${promptType} prompt "${promptName}".`);
+  }
+
+  private choiceValue(choice: unknown): unknown {
+    if (typeof choice === "string") {
+      return choice;
+    }
+
+    if (!choice || typeof choice !== "object") {
+      return choice;
+    }
+
+    const record = choice as Record<string, unknown>;
+    if (Object.prototype.hasOwnProperty.call(record, "value")) {
+      return record["value"];
+    }
+
+    if (Object.prototype.hasOwnProperty.call(record, "name")) {
+      return record["name"];
+    }
+
+    return choice;
+  }
+
+  private async resolveWhen(
+    when: unknown,
+    answers: Record<string, unknown>,
+  ): Promise<boolean> {
+    if (typeof when === "undefined") {
+      return true;
+    }
+
+    if (typeof when === "boolean") {
+      return when;
+    }
+
+    if (typeof when === "function") {
+      return Boolean(await when(answers));
+    }
+
+    return true;
+  }
+
+  private isPromptCancelled(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    // @inquirer/prompts throws ExitPromptError when user presses Ctrl+C.
+    return (
+      error.name === "ExitPromptError" ||
+      error.message.includes("SIGINT") ||
+      error.message.includes("User force closed the prompt")
+    );
+  }
+
+  private colorizeActionLabel(type: string, label: string): string {
+    if (type === "function") return pc.yellow(label);
+    if (type === "add" || type === "addMany" || type === "append" || type === "skip") {
+      return pc.green(label);
+    }
+    if (type === "modify") {
+      return `${pc.green("+")}${pc.red("-")}`;
+    }
+    return pc.dim(label);
+  }
+}
