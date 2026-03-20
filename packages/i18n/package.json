@@ -1,0 +1,42 @@
+{
+  "name": "@plop-next/i18n",
+  "version": "0.0.1",
+  "description": "Internationalization utilities for plop-next",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nivvdiy/plop-next.git",
+    "directory": "packages/i18n"
+  },
+  "author": "Nivvdiy <nivvdiy@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nivvdiy/plop-next/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@inquirer/i18n": "^1.0.2",
+    "@plop-next/core": "workspace:*",
+    "dlv": "^1.1.3",
+    "resolve": "^1.22.11",
+    "tinyglobby": "^0.2.15"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

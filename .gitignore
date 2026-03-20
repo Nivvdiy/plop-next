@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+coverage
+.turbo
+.nyc_output
+instrumented
+
+# Logs
+*.log
+
+# Env
+.env*
+
+# TypeScript
+*.tsbuildinfo
+
+# Yarn 4
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/patches
+!.yarn/sdks
+!.yarn/versions
+!.pnp.cjs
+
+# Editor
+.vscode/*
+
+.idea
+
+# Misc
+.DS_Store
+demoFiles/
+.vscode/settings.json
