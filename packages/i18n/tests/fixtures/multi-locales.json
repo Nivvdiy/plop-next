@@ -1,0 +1,12 @@
+{
+  "fr": {
+    "cli": {
+      "selectGenerator": "Choisir via fichier multi"
+    }
+  },
+  "en": {
+    "cli": {
+      "selectGenerator": "Choose via multi file"
+    }
+  }
+}
