@@ -23,6 +23,12 @@ describe("I18nRegistry — help texts (read-only)", () => {
     expect(help.examples).toBe("Exemples :");
   });
 
+  it("returns Spanish help texts for 'es'", () => {
+    const help = registry.getHelpTexts("es");
+    expect(help.usage).toBe("Uso:");
+    expect(help.examples).toBe("Ejemplos:");
+  });
+
   it("returns English help texts for an unknown locale", () => {
     const help = registry.getHelpTexts("de");
     expect(help.usage).toBe(CORE_DEFAULT_HELP_TEXTS.usage);
@@ -35,8 +41,8 @@ describe("I18nRegistry — help texts (read-only)", () => {
   });
 
   it("falls back to English if parent locale has no help either", () => {
-    registry.registerLocale("es", { greet: "Hola" });
-    const help = registry.getHelpTexts("es");
+    registry.registerLocale("pt", { greet: "Ola" });
+    const help = registry.getHelpTexts("pt");
     expect(help.usage).toBe(CORE_DEFAULT_HELP_TEXTS.usage);
   });
 

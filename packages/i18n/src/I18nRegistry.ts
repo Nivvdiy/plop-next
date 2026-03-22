@@ -1,5 +1,6 @@
 import type { HelpTexts, LocaleTexts, LocaleTag } from "@plop-next/core";
 import { BASE_LOCALE, EN_MESSAGES } from "./locales/en";
+import { ES_MESSAGES } from "./locales/es";
 import { FR_MESSAGES } from "./locales/fr";
 
 function resolvePath(obj: unknown, path: string): unknown {
@@ -20,6 +21,7 @@ export class I18nRegistry {
 
   constructor() {
     this.locales.set(BASE_LOCALE, EN_MESSAGES);
+    this.locales.set("es", ES_MESSAGES);
     this.locales.set("fr", FR_MESSAGES);
   }
 

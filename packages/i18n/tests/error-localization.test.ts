@@ -19,6 +19,6 @@ describe("error localization", () => {
 
     handler.handle(new GeneratorNotFoundError("component"));
 
-    expect(stderr).toHaveBeenCalledWith('✖ Generateur "component" introuvable.');
+    expect(stderr).toHaveBeenCalledWith('✖ Générateur "component" introuvable.');
   });
 });

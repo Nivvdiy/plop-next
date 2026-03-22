@@ -72,6 +72,10 @@ describe("PlopNextI18n", () => {
     expect(i18n.hasLocale("en")).toBe(true);
   });
 
+  it("hasLocale returns true for ES (built-in)", () => {
+    expect(i18n.hasLocale("es")).toBe(true);
+  });
+
   // ── registerLocale/registerLocales/registerTexts sources ───────
 
   it("registerLocale accepts single-locale JSON file path", () => {
