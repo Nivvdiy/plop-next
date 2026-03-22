@@ -22,6 +22,7 @@ export {
   PlopfileLoadError,
   PlopfileExportError,
   UserCancelledError,
+  ForcedLangFallbackWarning,
 } from "./errors/PlopError";
 export type { ActionRunnerOptions, ActionRunResult } from "./ActionRunner";
 export type {
@@ -62,4 +63,4 @@ export type {
   ErrorHandlerOptions,
   ErrorHandleResult,
 } from "./errors/ErrorHandler";
-export type { ErrorConfig } from "./errors/PlopError";
+export type { ErrorConfig, ForcedLangFallbackReason } from "./errors/PlopError";

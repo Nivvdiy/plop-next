@@ -51,6 +51,7 @@ export class PlopNextI18n {
       },
       use: (options) => this.enable(options),
       isEnabled: () => this.enabled,
+      hasLocale: (locale) => this.registry.hasLocale(locale),
       registerLocale: (locale, messages, options) => {
         this.registerLocale(locale, messages, options);
       },

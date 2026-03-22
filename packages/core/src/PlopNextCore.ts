@@ -66,6 +66,7 @@ export interface I18nAdapter {
   getWelcomeMessage?(): string | null;
   use?(options: UseI18nOptions): void;
   isEnabled?(): boolean;
+  hasLocale?(locale: LocaleTag): boolean;
   registerLocale?(
     locale: LocaleTag,
     messages: LocaleTexts | string,
@@ -512,6 +513,14 @@ export class PlopNextCore {
 
   getLocale(): LocaleTag {
     return this.i18nAdapter?.getLocale?.() ?? "en";
+  }
+
+  hasLocale(locale: LocaleTag): boolean {
+    if (locale === "en") {
+      return true;
+    }
+
+    return this.i18nAdapter?.hasLocale?.(locale) ?? false;
   }
 
   async executeActions(

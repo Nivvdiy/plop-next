@@ -10,6 +10,8 @@ import {
   PlopfileNotFoundWarning,
   PlopfileLoadError,
   PlopfileExportError,
+  ForcedLangFallbackWarning,
+  type ForcedLangFallbackReason,
   type ErrorVerbosity,
   type UnknownRecord,
 } from "@plop-next/core";
@@ -36,7 +38,7 @@ export interface CLIOptions {
   bypassPositionals?: string[];
   /** Named bypass values passed after `--` (e.g. --name value). */
   bypassNamed?: Record<string, string | boolean>;
-  /** Preferred locale for fallback CLI errors when no plopfile locale is available. */
+  /** Preferred locale for CLI errors and runtime i18n override when available. */
   lang?: string;
   /** Error verbosity level (simple | verbose | debug). Default: simple. */
   errorVerbosity?: ErrorVerbosity;
@@ -53,6 +55,7 @@ export class PlopNextCLI {
   private readonly liftoff: InstanceType<typeof Liftoff>;
   private readonly require = createRequire(import.meta.url);
   private errorHandler: ErrorHandler;
+  private forcedLangWarningShown = false;
 
   constructor() {
     this.errorHandler = new ErrorHandler();
@@ -90,6 +93,8 @@ export class PlopNextCLI {
     env: LiftoffEnv,
     options: CLIOptions,
   ): Promise<void> {
+    this.forcedLangWarningShown = false;
+
     // Configure error handler
     if (options.errorVerbosity) this.errorHandler.setVerbosity(options.errorVerbosity);
     if (options.errorLogFile) this.errorHandler.setLogFile(options.errorLogFile);
@@ -132,6 +137,8 @@ export class PlopNextCLI {
 
       await (setup as (core: PlopNextCore) => void | Promise<void>)(core);
 
+      await this.applyLangOverride(core, options.lang, env.configPath);
+
       // Apply resolved runtime theme (including user overrides from plopfile)
       // to centralized error rendering.
       this.errorHandler.setTheme(core.getTheme());
@@ -168,12 +175,14 @@ export class PlopNextCLI {
       const registry = new I18nRegistry();
 
       if (!registry.hasLocale(locale)) {
+        this.warnForcedLangFallback(locale, "locale-not-found");
         return;
       }
 
       registry.setActiveLocale(locale);
       this.errorHandler.setTranslator((key, args, fallback) => registry.t(key, args, fallback));
     } catch {
+      this.warnForcedLangFallback(locale, "i18n-missing");
       // Keep English defaults when the optional i18n package is unavailable.
     }
   }
@@ -185,6 +194,55 @@ export class PlopNextCLI {
 
     const normalized = locale.trim().toLowerCase();
     return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private async applyLangOverride(
+    core: PlopNextCore,
+    lang: string | undefined,
+    configPath: string,
+  ): Promise<void> {
+    const locale = this.normalizeLocale(lang);
+    if (!locale) {
+      return;
+    }
+
+    // Only override plopfile-configured locale if @plop-next/i18n is installed
+    // in the target project environment.
+    if (!this.isI18nInstalledForProject(configPath)) {
+      this.warnForcedLangFallback(locale, "i18n-missing");
+      return;
+    }
+
+    if (!core.hasLocale(locale)) {
+      this.warnForcedLangFallback(locale, "locale-not-found");
+      core.setLocale("en");
+      return;
+    }
+
+    core.setLocale(locale);
+  }
+
+  private isI18nInstalledForProject(configPath: string): boolean {
+    try {
+      const projectRequire = createRequire(pathToFileURL(configPath).href);
+      projectRequire.resolve("@plop-next/i18n");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private warnForcedLangFallback(
+    locale: string,
+    reason: ForcedLangFallbackReason,
+  ): void {
+    if (this.forcedLangWarningShown) {
+      return;
+    }
+
+    this.forcedLangWarningShown = true;
+
+    this.errorHandler.handle(new ForcedLangFallbackWarning(locale, reason));
   }
 }
 

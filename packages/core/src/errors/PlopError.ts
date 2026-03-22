@@ -23,6 +23,8 @@ export interface ErrorTranslation {
   fallback: string;
 }
 
+export type ForcedLangFallbackReason = "i18n-missing" | "locale-not-found";
+
 function resolveDefaultErrorText(key: string, args: unknown[] = []): string {
   const value = (CORE_DEFAULT_TEXTS.errors as UnknownRecord)[key];
 
@@ -247,5 +249,44 @@ export class PlopfileNotFoundWarning extends PlopError {
       message ? undefined : { key: "errors.plopfileNotFoundWarning", fallback },
     );
     Object.setPrototypeOf(this, PlopfileNotFoundWarning.prototype);
+  }
+}
+
+/**
+ * Forced locale fallback warning.
+ * Emitted when `--lang` is provided but cannot be applied.
+ */
+export class ForcedLangFallbackWarning extends PlopError {
+  readonly locale: string;
+  readonly reason: ForcedLangFallbackReason;
+
+  constructor(locale: string, reason: ForcedLangFallbackReason) {
+    const args = [locale];
+    const key =
+      reason === "i18n-missing"
+        ? "forcedLangI18nMissing"
+        : "forcedLangUnavailable";
+    const fallback = resolveDefaultErrorText(key, args);
+
+    super(
+      "FORCED_LANG_FALLBACK",
+      fallback,
+      {
+        isWarning: true,
+        shouldExit: false,
+        exitCode: 0,
+        showStackTrace: false,
+        allowLogFile: false,
+      },
+      {
+        key: `errors.${key}`,
+        args,
+        fallback,
+      },
+    );
+
+    this.locale = locale;
+    this.reason = reason;
+    Object.setPrototypeOf(this, ForcedLangFallbackWarning.prototype);
   }
 }

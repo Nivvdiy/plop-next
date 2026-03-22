@@ -81,6 +81,10 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
     userCancelled: "Prompt cancelled by user.",
     plopfileNotFoundWarning:
       "No plopfile found. Create a plopfile.js in your project.",
+    forcedLangI18nMissing: (locale: string) =>
+      `Forced locale "${locale}" ignored because @plop-next/i18n is not installed. Falling back to English.`,
+    forcedLangUnavailable: (locale: string) =>
+      `Forced locale "${locale}" is not available. Falling back to English.`,
   },
 
   /**

@@ -69,8 +69,8 @@ export const FR_MESSAGES: LocaleTexts = {
       "Impossible de trouver un plopfile (plopfile.js ou plopfile.ts).",
     plopfileLoadFailed: (err: string) =>
       `Échec du chargement du plopfile : ${err}`,
-    generatorNotFound: (name: string) => `Generateur "${name}" introuvable.`,
-    noGenerators: "Aucun generateur enregistre. Ajoutez-en dans votre plopfile.",
+    generatorNotFound: (name: string) => `Générateur "${name}" introuvable.`,
+    noGenerators: "Aucun générateur enregistre. Ajoutez-en dans votre plopfile.",
     invalidPrompt: (name: string, reason: string) =>
       `Prompt invalide "${name}" : ${reason}`,
     bypassParse: (
@@ -80,11 +80,15 @@ export const FR_MESSAGES: LocaleTexts = {
       detail?: string,
     ) =>
       `Impossible d'assigner la valeur de bypass "${value}" au prompt ${promptType} "${promptName}"${detail ? `: ${detail}` : ""}`,
-    plopfileLoad: (path: string) => `Echec du chargement du plopfile : ${path}`,
-    plopfileExport: "Le plopfile doit exporter une fonction par defaut.",
-    userCancelled: "Prompt annule par l'utilisateur.",
+    plopfileLoad: (path: string) => `Échec du chargement du plopfile : ${path}`,
+    plopfileExport: "Le plopfile doit exporter une fonction par défaut.",
+    userCancelled: "Prompt annulé par l'utilisateur.",
     plopfileNotFoundWarning:
-      "Aucun plopfile trouve. Creez un plopfile.js dans votre projet.",
+      "Aucun plopfile trouvé. Créez un plopfile.js dans votre projet.",
+    forcedLangI18nMissing: (locale: string) =>
+      `La locale forcée "${locale}" est ignorée car @plop-next/i18n n'est pas installé. Repli sur l'anglais.`,
+    forcedLangUnavailable: (locale: string) =>
+      `La locale forcée "${locale}" n'est pas disponible. Repli sur l'anglais.`,
   },
 
   /**
