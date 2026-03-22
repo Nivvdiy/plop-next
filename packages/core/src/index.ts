@@ -43,6 +43,7 @@ export type {
   HandlebarsHelper,
   PromptRenderer,
   DefaultIncludeConfig,
+  PlopPromptBase,
   PlopPrompt,
   GeneratorListItem,
   GeneratorMenuItem,

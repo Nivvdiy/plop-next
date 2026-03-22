@@ -35,5 +35,5 @@ export function askCustomPrompt(
   config: PromptHandlerConfig,
 ): Promise<unknown> {
   const { name: _name, ...rest } = config;
-  return prompt(rest);
+  return Promise.resolve(prompt(rest));
 }

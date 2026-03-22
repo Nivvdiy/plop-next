@@ -1,7 +1,8 @@
-import type { PlopNext, PlopNextTheme } from "@plop-next/cli";
+import type { PlopNext, PlopNextTheme, PlopPromptBase } from "@plop-next/cli";
 import { Separator, defaultTheme } from "@plop-next/cli";
 import { styleText } from "node:util";
 import { PlopNextI18n } from "@plop-next/i18n";
+import TableMultiple from '@bartheleway/inquirer-table-multiple'
 
 /**
  * Thème personnalisé — remplace les couleurs cyan/green/bold par des tons magenta/jaune.
@@ -49,6 +50,8 @@ const customTheme: PlopNextTheme = {
   },
 };
 
+type TableMultiplePrompt = Parameters<typeof TableMultiple>[0] & PlopPromptBase;
+
 /**
  * Mock functions for dynamic choice lists
  * In a real project, these would read from the filesystem or database
@@ -67,6 +70,8 @@ export default function plop(plop: PlopNext) {
 
   // 1. Instancier le plugin i18n (les locales EN et FR sont pré-enregistrées)
   const i18n = new PlopNextI18n(plop);
+
+  plop.registerPrompt("table-multiple", TableMultiple); // Enregistrer un prompt custom fourni par @bartheleway/inquirer-table-multiple
 
   // 2. Enregistrer les textes i18n pour le générateur "component"
   i18n.registerTexts("fr", {
@@ -290,28 +295,46 @@ export default function plop(plop: PlopNext) {
     },
   });
 
-  /*plop.setGenerator("helloWorld", {
-    description: "Simple generator that says hello",
+  plop.setGenerator("customGenerator", {
+    description: "Générateur avec un prompt custom (table-multiple)",
     prompts: [
       {
-        type: "input",
-        name: "name",
-        message: "What is your name?",
-        default: "World",
-      },
+        type: "table-multiple",
+        name: "tableChoice",message: 'Choose between choices?',
+	      columns: [
+          {
+            title: 'Yes?',
+            value: 1,
+          },
+          {
+            title: 'No?',
+            value: 0,
+          },
+        ],
+        rows: [
+          {
+            value: 1,
+            title: 'Choice 1',
+          },
+          {
+            value: 2,
+            title: 'Choice 2',
+          }
+        ],
+      } as TableMultiplePrompt,
     ],
     actions: (answers) => {
-      console.log(`Hello, ${answers.name}!`);
+      console.log("Table choice:", answers.tableChoice);
       return [];
     },
-  });*/
+  });
 
   // ── Séparateurs dans le menu des générateurs ──────────────────────
   // addSeparator() insère une ligne entre les générateurs dans le select.
   // Sans argument → ligne vide gérée par Inquirer par défaut.
   // Avec argument → texte personnalisé affiché comme séparateur.
   plop.addSeparator();
- /* plop.setGenerator("utilsGenerator", {
+ plop.setGenerator("utilsGenerator", {
     description: "Génère un fichier utilitaire TypeScript",
     prompts: [
       {
@@ -325,10 +348,10 @@ export default function plop(plop: PlopNext) {
       console.log(`Generating utility: ${answers.utilName}`);
       return [];
     },
-  });*/
+  });
 
   plop.addSeparator("── Avancé ──────────────────────────────────────");
-  /*plop.setGenerator("advancedGenerator", {
+  plop.setGenerator("advancedGenerator", {
     description: "Générateur avec configuration avancée",
     prompts: [
       {
@@ -341,5 +364,5 @@ export default function plop(plop: PlopNext) {
       console.log(`Advanced feature: ${answers.featureName}`);
       return [];
     },
-  });*/
+  });
 }

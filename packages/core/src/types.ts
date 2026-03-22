@@ -377,9 +377,13 @@ export type ActionsConfig = Action[] | DynamicActionsFn;
 
 export type HandlebarsHelper = (...args: unknown[]) => unknown;
 
-export type PromptRenderer = (
-  config: Record<string, unknown>,
-) => Promise<unknown>;
+/**
+ * Legacy custom prompt renderer signature.
+ *
+ * Kept intentionally permissive because third-party prompt packages can expose
+ * stricter config generics and optional extra params (e.g. context).
+ */
+export type PromptRenderer = (...args: any[]) => unknown | Promise<unknown>;
 
 export interface ActionExecutionOptions {
   dest?: string;
