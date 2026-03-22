@@ -6,8 +6,8 @@
 export interface PromptHandlerConfig {
   /** Answer key — included so handlers can forward it if needed. */
   name: string;
-  /** Reserved for future plop-next theming API (currently blocked). */
-  theme?: never;
+  /** Internal use: resolved by core.setTheme({ ... }). */
+  theme?: Record<string, unknown>;
   message?: unknown;
   default?: unknown;
   validate?: unknown;

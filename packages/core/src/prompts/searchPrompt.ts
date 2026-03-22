@@ -24,6 +24,7 @@ export const searchPromptHandler: PromptHandler = {
       pageSize,
       default: defaultValue,
       validate,
+      theme,
       ...rest
     } = config;
 
@@ -35,7 +36,7 @@ export const searchPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "search" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, source, pageSize, default, validate.`,
+          `Supported fields are: message, source, pageSize, default, validate, theme.`,
       );
     }
 
@@ -60,6 +61,7 @@ export const searchPromptHandler: PromptHandler = {
       ...(validate !== undefined && {
         validate: validate as (value: unknown) => boolean | string | Promise<boolean | string>,
       }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

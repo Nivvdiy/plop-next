@@ -8,6 +8,18 @@ export type LocaleTexts = Record<string, unknown>;
 /** BCP-47 locale tag, e.g. "en", "fr", "es". */
 export type LocaleTag = string;
 
+import type { Theme } from "./theme";
+
+// ─────────────────────────────────────────────
+//  Theme
+// ─────────────────────────────────────────────
+
+/** Raw @inquirer style object. */
+export type InquirerStyleObject = Partial<Theme["style"]> & Record<string, unknown>;
+
+/** Single theme object for both @inquirer and plop-next defaults/overrides. */
+export type PlopNextTheme = Partial<Theme>;
+
 // ─────────────────────────────────────────────
 //  Prompts
 // ─────────────────────────────────────────────
@@ -148,7 +160,7 @@ export interface PlopPromptBase {
    * Reserved for future plop-next theming API.
    * Intentionally blocked for now.
    */
-  theme?: never;
+  //theme?: never;
   /** Input message or callback to generate dynamic message. */
   message?: string | ((answers: Record<string, any>) => string);
   /** Default value if no answer provided. */
@@ -220,9 +232,6 @@ export interface PlopPromptExpand extends PlopPromptBase {
   expanded?: boolean;
 }
 
-/** @deprecated Use PlopPromptSelect / PlopPromptRawList / PlopPromptExpand instead. */
-export type PlopPromptSingleChoice = PlopPromptSelect | PlopPromptRawList | PlopPromptExpand;
-
 /** Search-based single-choice prompt (dynamic source function). */
 export interface PlopPromptSearch extends PlopPromptBase {
   type: "search";
@@ -281,10 +290,7 @@ export type PlopPrompt =
   | PlopPromptCheckbox
   | PlopPromptEditor
   | PlopPromptPassword
-  | (PlopPromptBase & Record<string, unknown>);
-
-/** @deprecated Use PlopPromptSingleChoice or PlopPromptCheckbox instead. */
-export type PlopPromptWithChoices = PlopPromptSingleChoice | PlopPromptCheckbox;
+  | PlopPromptBase;
 
 // ─────────────────────────────────────────────
 //  Actions

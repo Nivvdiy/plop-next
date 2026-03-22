@@ -27,6 +27,7 @@ import type {
   ActionExecutionOptions,
   ActionStepResult,
   DefaultIncludeConfig,
+  PlopNextTheme,
 } from "./types";
 import { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 import type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
@@ -37,6 +38,8 @@ import {
   listCustomPromptTypes,
   registerCustomPrompt,
 } from "./prompts/customPrompt";
+import { defaultTheme } from "./theme";
+import type { DefaultTheme, Theme } from "./theme";
 
 export interface UseI18nOptions {
   /** Force a specific locale tag, e.g. "fr". */
@@ -95,6 +98,7 @@ export class PlopNextCore {
   private plopfilePath?: string;
   private destBasePath: string = process.cwd();
   private defaultInclude: DefaultIncludeConfig = {};
+  private theme: PlopNextTheme = {};
   private pkgCachePath?: string;
   private pkgCache?: Record<string, unknown>;
 
@@ -196,14 +200,41 @@ export class PlopNextCore {
    * @param config All prompt fields minus plop-next-only keys (type/name/filter/when/askAnswered).
    */
   async askPrompt(type: string, config: PromptHandlerConfig): Promise<unknown> {
+    if (Object.prototype.hasOwnProperty.call(config, "theme")) {
+      throw new Error(
+        `The "theme" prompt field is not supported in plop-next. ` +
+          `Use core.setTheme({ ... }) instead.`,
+      );
+    }
+
+    const promptTheme = this.resolvePromptTheme();
+    const configWithTheme =
+      promptTheme === undefined
+        ? config
+        : {
+            ...config,
+            theme: promptTheme,
+          };
+
     // 1. Legacy renderer wins
     const customFn = this.getPrompt(type);
     if (customFn) {
-      return askCustomPrompt(customFn, config);
+      return askCustomPrompt(customFn, configWithTheme);
     }
 
     // 2 & 3. Typed handler (or input fallback)
-    return this.promptHandlerRegistry.ask(type, config);
+    return this.promptHandlerRegistry.ask(type, configWithTheme, {
+      allowTheme: true,
+    });
+  }
+
+  setTheme(theme: PlopNextTheme): this {
+    this.theme = this.cloneTheme(theme);
+    return this;
+  }
+
+  getTheme(): PlopNextTheme {
+    return this.cloneTheme(this.resolveTheme());
   }
 
   getActionType(name: string): CustomActionFunction | undefined {
@@ -695,5 +726,87 @@ export class PlopNextCore {
    */
   preparePrompts(generatorName: string, prompts: PlopPrompt[]): PlopPrompt[] {
     return this.i18nAdapter?.preparePrompts(generatorName, prompts) ?? prompts;
+  }
+
+  private resolvePromptTheme(): Pick<DefaultTheme, "prefix" | "spinner" | "style"> {
+    const theme = this.resolveTheme();
+    return {
+      prefix: theme.prefix,
+      spinner: theme.spinner,
+      style: theme.style,
+    };
+  }
+
+  private resolveTheme(): Theme {
+    const spinnerFrames = this.theme.spinner?.frames;
+
+    return {
+      prefix: this.theme.prefix ?? defaultTheme.prefix,
+      spinner: {
+        ...defaultTheme.spinner,
+        ...(this.theme.spinner ?? {}),
+        frames: Array.isArray(spinnerFrames)
+          ? [...spinnerFrames]
+          : [...defaultTheme.spinner.frames],
+      },
+      style: {
+        ...defaultTheme.style,
+        ...(this.theme.style ?? {}),
+      },
+      plopNext: {
+        ...defaultTheme.plopNext,
+        ...(this.theme.plopNext ?? {}),
+        generatorMenu: {
+          ...defaultTheme.plopNext.generatorMenu,
+          ...(this.theme.plopNext?.generatorMenu ?? {}),
+        },
+        actionLog: {
+          ...defaultTheme.plopNext.actionLog,
+          ...(this.theme.plopNext?.actionLog ?? {}),
+        },
+      },
+    };
+  }
+
+  private cloneTheme(theme: PlopNextTheme): PlopNextTheme {
+    return {
+      ...(theme.prefix !== undefined ? { prefix: theme.prefix } : {}),
+      ...(theme.spinner !== undefined
+        ? {
+            spinner: {
+              ...theme.spinner,
+              ...(Array.isArray(theme.spinner.frames)
+                ? { frames: [...theme.spinner.frames] }
+                : {}),
+            },
+          }
+        : {}),
+      ...(theme.style !== undefined ? { style: { ...theme.style } } : {}),
+      ...(theme.plopNext !== undefined
+        ? {
+            plopNext: {
+              ...theme.plopNext,
+              ...(theme.plopNext.generatorMenu
+                ? {
+                    generatorMenu: {
+                      ...theme.plopNext.generatorMenu,
+                    },
+                  }
+                : {}),
+              ...(theme.plopNext.actionLog
+                ? {
+                    actionLog: {
+                      ...theme.plopNext.actionLog,
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+    };
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 }

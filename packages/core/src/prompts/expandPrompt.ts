@@ -13,6 +13,7 @@ export const expandPromptHandler: PromptHandler = {
       choices,
       default: defaultValue,
       expanded,
+      theme,
       ...rest
     } = config;
 
@@ -24,7 +25,7 @@ export const expandPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "expand" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, choices, default, expanded.`,
+          `Supported fields are: message, choices, default, expanded, theme.`,
       );
     }
 
@@ -42,6 +43,7 @@ export const expandPromptHandler: PromptHandler = {
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(expanded !== undefined && { expanded }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

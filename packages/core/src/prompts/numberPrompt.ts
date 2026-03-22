@@ -16,6 +16,7 @@ export const numberPromptHandler: PromptHandler = {
       step,
       required,
       validate,
+      theme,
       ...rest
     } = config;
 
@@ -23,7 +24,7 @@ export const numberPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "number" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, default, min, max, step, required, validate.`,
+          `Supported fields are: message, default, min, max, step, required, validate, theme.`,
       );
     }
 
@@ -63,6 +64,7 @@ export const numberPromptHandler: PromptHandler = {
       ...(max !== undefined && { max }),
       ...(step !== undefined && { step }),
       ...(required !== undefined && { required }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

@@ -13,6 +13,7 @@ export const rawlistPromptHandler: PromptHandler = {
       choices,
       default: defaultValue,
       loop,
+      theme,
       ...rest
     } = config;
 
@@ -24,7 +25,7 @@ export const rawlistPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "rawlist" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, choices, default, loop.`,
+          `Supported fields are: message, choices, default, loop, theme.`,
       );
     }
 
@@ -38,6 +39,7 @@ export const rawlistPromptHandler: PromptHandler = {
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(loop !== undefined && { loop }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

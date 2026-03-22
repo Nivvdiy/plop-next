@@ -1,6 +1,6 @@
 import { createSpinner } from "nanospinner";
 import pc from "picocolors";
-import { select, Separator } from "@inquirer/prompts";
+import { Separator } from "@inquirer/prompts";
 import type { PlopNextCore, PlopPrompt } from "@plop-next/core";
 
 export interface RunnerOptions {
@@ -35,12 +35,13 @@ export class PlopNextRunner {
   }
 
   async run(generatorName?: string): Promise<void> {
+    const theme = this.getCliTheme();
     try {
       const list = this.core.getGeneratorList();
 
       if (list.length === 0) {
         console.error(
-          pc.red(this.core.t("cli.noGenerators", [], "No generators registered. Add some to your plopfile.")),
+          theme.error(this.core.t("cli.noGenerators", [], "No generators registered. Add some to your plopfile.")),
         );
         process.exit(1);
       }
@@ -51,7 +52,7 @@ export class PlopNextRunner {
       if (generatorName) {
         if (!this.core.getGenerator(generatorName)) {
           console.error(
-            pc.red(this.core.t("cli.generatorNotFound", [generatorName], `Generator \"${generatorName}\" not found.`)),
+            theme.error(this.core.t("cli.generatorNotFound", [generatorName], `Generator \"${generatorName}\" not found.`)),
           );
           process.exit(1);
         }
@@ -61,37 +62,16 @@ export class PlopNextRunner {
       } else {
         const welcomeMessage = this.core.getWelcomeMessage();
         if (welcomeMessage) {
-          console.log(pc.dim(welcomeMessage));
+          console.log(theme.welcome(welcomeMessage));
         }
 
-        chosen = await select<string>({
-          message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
-          choices: [
-            ...list.map((g) => {
-              // Translate generator description if available
-              const translatedDescription = this.core.t(
-                `${g.name}.description`,
-                [],
-                g.description || undefined,
-              );
-
-              return {
-                name:
-                  translatedDescription && translatedDescription !== `${g.name}.description`
-                    ? `${g.name} ${pc.dim(`- ${translatedDescription}`)}`
-                    : g.name,
-                value: g.name,
-              };
-            }),
-            new Separator(),
-          ],
-        });
+        chosen = await this.askGeneratorSelection(list);
       }
 
       await this.runGenerator(chosen);
     } catch (error) {
       if (this.isPromptCancelled(error)) {
-        console.log(pc.yellow(`\n${this.core.t("cli.promptCancelled", [], "Console exited by user.")}`));
+        console.log(theme.skipped(`\n${this.core.t("cli.promptCancelled", [], "Console exited by user.")}`));
         process.exit(1);
         return;
       }
@@ -102,13 +82,14 @@ export class PlopNextRunner {
   // ── Private ──────────────────────────────────────────────────────
 
   private async runGenerator(name: string): Promise<void> {
+    const theme = this.getCliTheme();
     const config = this.core.getGenerator(name);
     if (!config) {
-      console.error(pc.red(this.core.t("cli.generatorNotFound", [name], `Generator "${name}" not found.`)));
+      console.error(theme.error(this.core.t("cli.generatorNotFound", [name], `Generator "${name}" not found.`)));
       process.exit(1);
     }
 
-    console.log("\n" + pc.cyan(pc.bold(name)));
+    console.log("\n" + theme.generatorTitle(name));
 
     // ── Run prompts ──────────────────────────────────────────────────
     const preparedPrompts = this.core.preparePrompts(name, config.prompts);
@@ -170,7 +151,7 @@ export class PlopNextRunner {
 
     for (const step of steps) {
       if (step.type === "comment") {
-        console.log(pc.dim(step.message));
+        console.log(theme.info(step.message));
         continue;
       }
 
@@ -181,19 +162,19 @@ export class PlopNextRunner {
 
       if (step.status === "success") {
         if (showProgress) {
-          createSpinner("Running action").success({ text });
+          createSpinner("Running action").success({ text: theme.success(text) });
         } else {
-          console.log(`${pc.green("✔")}  ${text}`);
+          console.log(theme.success(text));
         }
       } else if (showProgress) {
-        createSpinner("Running action").error({ text: pc.red(step.message) });
+        createSpinner("Running action").error({ text: theme.error(step.message) });
       } else {
-        console.error(pc.red(step.message));
+        console.error(theme.error(step.message));
       }
     }
 
     if (!failed && steps.length === 0) {
-      const text = pc.green(this.core.t("cli.done", [], "Done!"));
+      const text = theme.success(this.core.t("cli.done", [], "Done!"));
       console.log(text);
     }
   }
@@ -204,6 +185,41 @@ export class PlopNextRunner {
     inquirerConfig: Record<string, unknown>,
   ): Promise<unknown> {
     return this.core.askPrompt(type, { name, ...inquirerConfig });
+  }
+
+  private async askGeneratorSelection(
+    list: Array<{ name: string; description?: string }>,
+  ): Promise<string> {
+    const choices = [
+      ...list.map((g) => {
+        const translatedDescription = this.core.t(
+          `${g.name}.description`,
+          [],
+          g.description || undefined,
+        );
+
+        return {
+          name:
+            translatedDescription && translatedDescription !== `${g.name}.description`
+              ? `${g.name} - ${translatedDescription}`
+              : g.name,
+          value: g.name,
+        };
+      }),
+      new Separator(),
+    ];
+
+    const selected = await this.core.askPrompt("select", {
+      name: "__generator",
+      message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
+      choices,
+    });
+
+    if (typeof selected !== "string" || selected.length === 0) {
+      throw new Error("Generator selection returned an invalid value.");
+    }
+
+    return selected;
   }
 
   private async resolvePrompt(
@@ -410,5 +426,27 @@ export class PlopNextRunner {
       return `${pc.green("+")}${pc.red("-")}`;
     }
     return pc.dim(label);
+  }
+
+  private getCliTheme(): {
+    welcome: (text: string) => string;
+    generatorTitle: (text: string) => string;
+    generatorDescription: (text: string) => string;
+    success: (text: string) => string;
+    error: (text: string) => string;
+    skipped: (text: string) => string;
+    info: (text: string) => string;
+  } {
+    const theme = this.core.getTheme().plopNext;
+
+    return {
+      welcome: theme?.welcome ?? ((text: string) => pc.dim(text)),
+      generatorTitle: theme?.generatorMenu?.title ?? ((text: string) => pc.bold(text)),
+      generatorDescription: theme?.generatorMenu?.description ?? ((text: string) => pc.dim(text)),
+      success: theme?.actionLog?.success ?? ((text: string) => pc.green(text)),
+      error: theme?.actionLog?.error ?? ((text: string) => pc.red(text)),
+      skipped: theme?.actionLog?.skipped ?? ((text: string) => pc.yellow(text)),
+      info: theme?.actionLog?.info ?? ((text: string) => pc.dim(text)),
+    };
   }
 }

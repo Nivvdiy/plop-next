@@ -42,6 +42,78 @@ describe("PlopNextCore", () => {
     expect(core.getGeneratorList()).toHaveLength(2);
   });
 
+  it("setTheme/getTheme are chainable and return clones", () => {
+    const theme = {
+      style: {
+        highlight: (text: string) => text.toUpperCase(),
+      },
+      plopNext: {
+        actionLog: {
+          success: (text: string) => `OK: ${text}`,
+        },
+      },
+    };
+
+    expect(core.setTheme(theme)).toBe(core);
+    const firstRead = core.getTheme();
+    expect(typeof firstRead.style?.message).toBe("function");
+    expect(typeof firstRead.plopNext?.welcome).toBe("function");
+    expect(firstRead.style?.highlight?.("abc")).toBe("ABC");
+    expect(firstRead.plopNext?.actionLog?.success?.("done")).toBe("OK: done");
+
+    if (firstRead.spinner?.frames) {
+      firstRead.spinner.frames[0] = "x";
+    }
+
+    expect(core.getTheme().spinner?.frames?.[0]).not.toBe("x");
+  });
+
+  it("injects theme style into matching prompt handlers", async () => {
+    let receivedTheme: unknown;
+
+    core.registerPrompt({
+      types: ["demo"],
+      async ask(_type, config) {
+        receivedTheme = config.theme;
+        return "ok";
+      },
+    });
+
+    core.setTheme({
+      style: {
+        answer: (text: string) => `A:${text}`,
+      },
+    });
+
+    const answer = await core.askPrompt("demo", {
+      name: "demoName",
+      message: "Demo",
+    });
+
+    expect(answer).toBe("ok");
+    expect(receivedTheme).toMatchObject({
+      style: expect.any(Object),
+      spinner: expect.any(Object),
+    });
+
+    const style = (receivedTheme as { style?: { message?: unknown; answer?: unknown } }).style;
+    expect(typeof style?.message).toBe("function");
+    expect(typeof style?.answer).toBe("function");
+
+    const answerStyle = style?.answer as ((text: string) => string) | undefined;
+    expect(answerStyle?.("hello")).toBe("A:hello");
+  });
+
+  it("rejects prompt-level theme field and guides to setTheme", async () => {
+    await expect(
+      core.askPrompt("input", {
+        name: "demoName",
+        message: "Demo",
+        theme: {},
+      }),
+    ).rejects.toThrow('Use core.setTheme({ ... }) instead.');
+  });
+
   // ── i18n adapter hooks ──────────────────────────────────────────
 
   it("i18n is disabled by default", () => {

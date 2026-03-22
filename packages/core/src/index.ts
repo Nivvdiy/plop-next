@@ -2,6 +2,7 @@ export { PlopNextCore } from "./PlopNextCore";
 export { ActionRunner } from "./ActionRunner";
 export { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 export { registerBuiltInPromptHandlers } from "./prompts/registerBuiltins";
+export { defaultTheme } from "./theme";
 export {
   askCustomPrompt,
   getCustomPrompt,
@@ -31,6 +32,9 @@ export type {
   PlopNextEnv,
   LocaleTexts,
   LocaleTag,
+  InquirerStyleObject,
+  PlopNextTheme,
 } from "./types";
+export type { Status, DefaultTheme, Theme } from "./theme";
 export type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
 export type { SeparatorLike } from "./prompts/Separator";

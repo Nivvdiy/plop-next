@@ -12,6 +12,7 @@ export const passwordPromptHandler: PromptHandler = {
       message,
       validate,
       mask,
+      theme,
       ...rest
     } = config;
 
@@ -19,7 +20,7 @@ export const passwordPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "password" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, mask, validate.`,
+          `Supported fields are: message, mask, validate, theme.`,
       );
     }
 
@@ -39,6 +40,7 @@ export const passwordPromptHandler: PromptHandler = {
         validate: validate as (value: string) => boolean | string | Promise<boolean | string>,
       }),
       ...(mask !== undefined && { mask }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

@@ -367,7 +367,8 @@ export class PlopNextI18n {
     }
 
     return prompts.map((prompt) => {
-      const resolvedPrompt: PlopPrompt & Record<string, unknown> = { ...prompt };
+      const resolvedPrompt: PlopPrompt = { ...prompt };
+      const resolvedPromptRecord = resolvedPrompt as unknown as Record<string, unknown>;
 
       const messageFallback =
         typeof prompt.message === "string" ? prompt.message : undefined;
@@ -383,11 +384,12 @@ export class PlopNextI18n {
       }
 
       // Handle choices if they exist on this prompt type
-      const choices = (prompt as Record<string, unknown>).choices;
+      const promptRecord = prompt as unknown as Record<string, unknown>;
+      const choices = promptRecord["choices"];
       if (Array.isArray(choices)) {
-        resolvedPrompt.choices = this.translateChoices(generatorName, prompt.name, choices);
+        resolvedPromptRecord["choices"] = this.translateChoices(generatorName, prompt.name, choices);
       } else if (typeof choices === "function") {
-        resolvedPrompt.choices = async (answers: Record<string, unknown>) => {
+        resolvedPromptRecord["choices"] = async (answers: Record<string, unknown>) => {
           const rawChoices = await choices(answers);
           return this.translateChoices(generatorName, prompt.name, rawChoices);
         };
@@ -404,7 +406,7 @@ export class PlopNextI18n {
       ];
 
       for (const field of translatableFields) {
-        const rawValue = resolvedPrompt[field];
+        const rawValue = resolvedPromptRecord[field];
         const fallback = typeof rawValue === "string" ? rawValue : undefined;
         const translated = this.resolvePromptField(
           generatorName,
@@ -414,7 +416,7 @@ export class PlopNextI18n {
         );
 
         if (translated !== undefined) {
-          resolvedPrompt[field] = translated;
+          resolvedPromptRecord[field] = translated;
         }
       }
 

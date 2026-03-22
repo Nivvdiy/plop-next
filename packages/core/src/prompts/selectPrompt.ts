@@ -15,6 +15,7 @@ export const selectPromptHandler: PromptHandler = {
       loop,
       pageSize,
       validate,
+      theme,
       ...rest
     } = config;
 
@@ -30,7 +31,7 @@ export const selectPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "select" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, choices, default, pageSize, loop.`,
+          `Supported fields are: message, choices, default, pageSize, loop, theme.`,
       );
     }
 
@@ -49,6 +50,7 @@ export const selectPromptHandler: PromptHandler = {
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(pageSize !== undefined && { pageSize }),
       ...(loop !== undefined && { loop }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

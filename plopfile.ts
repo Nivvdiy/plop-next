@@ -1,5 +1,45 @@
-import type { PlopNext } from "@plop-next/cli";
+import type { PlopNext, PlopNextTheme } from "@plop-next/cli";
+import { Separator, defaultTheme } from "@plop-next/cli";
+import { styleText } from "node:util";
 import { PlopNextI18n } from "@plop-next/i18n";
+
+/**
+ * Thème personnalisé — remplace les couleurs cyan/green/bold par des tons magenta/jaune.
+ */
+const customTheme: PlopNextTheme = {
+  prefix: {
+    idle: styleText("magenta", "◆"),
+    done: styleText("yellow", "◇"),
+  },
+  spinner: {
+    interval: 100,
+    frames: ["⣾", "⣷", "⣯", "⣟", "⣻", "⣽"].map((frame) =>
+      styleText("magenta", frame),
+    ),
+  },
+  style: {
+    answer: (text: string) => styleText("magenta", text),
+    message: (text: string) => styleText(["bold", "white"], text),
+    error: (text: string) => styleText(["redBright", "underline"], `> ${text}`),
+    defaultAnswer: (text: string) => styleText("green", `(${text})`),
+    help: (text: string) => styleText(["italic", "cyan"], text),
+    highlight: (text: string) => styleText("yellow", text),
+    key: (text: string) => styleText(["yellow", "bold"], `<${text}>`),
+  },
+  plopNext: {
+    welcome: (text: string) => styleText(["bold", "magenta"], text),
+    generatorMenu: {
+      title: (text: string) => styleText(["bold", "yellow"], text),
+      description: (text: string) => styleText("magenta", text),
+    },
+    actionLog: {
+      success: (text: string) => styleText("yellow", `✔ ${text}`),
+      error: (text: string) => styleText(["bold", "red"], `✖ ${text}`),
+      skipped: (text: string) => styleText("magenta", `● ${text}`),
+      info: (text: string) => styleText("white", text),
+    },
+  },
+};
 
 /**
  * Mock functions for dynamic choice lists
@@ -10,15 +50,19 @@ function getExistingComponents(): string[] {
 }
 
 function getExistingFeatures(): string[] {
-  return ["ui", "forms", "layout"];
+  return ["ui", "forms", "separator", "layout"];
 }
 
 export default function plop(plop: PlopNext) {
+
+  plop.setWelcomeMessage("Welcome to the PlopNext demo! Please select a generator to get started.");
+
   // 1. Instancier le plugin i18n (les locales EN et FR sont pré-enregistrées)
   const i18n = new PlopNextI18n(plop);
 
   // 2. Enregistrer les textes i18n pour le générateur "component"
   i18n.registerTexts("fr", {
+    welcomeMessage: "Bienvenue dans la démo de PlopNext ! Veuillez sélectionner un générateur pour commencer.",
     allTypesTest: {
       description: "Composant réutilisable (tsx + module.scss + index)",
       inputName: {
@@ -50,6 +94,9 @@ export default function plop(plop: PlopNext) {
   // 4. Forcer le français pour la démo
   plop.useI18n({ force: "fr" });
 
+  // 5. Appliquer le thème custom
+  plop.setTheme(customTheme);
+
   // ── Générateur "component" ──────────────────────────────────────────
 
   plop.setGenerator("allTypesTest", {
@@ -72,15 +119,31 @@ export default function plop(plop: PlopNext) {
         patternError: "Name must contain only letters",
       },
       {
-        type: "select",
+        type: "list",
         name: "selectFeature",
         message: "Select a feature",
-        choices: getExistingFeatures().map((feature) => ({
-          name: feature,
-          value: feature,
-        })),
+        choices: getExistingFeatures().map((feature) => {
+          if (feature === "separator") {
+            return new Separator("──────────");
+          } else {
+            return {
+              name: feature,
+              value: feature,
+            };
+          }
+        }),
         default: "ui",
         loop: true,
+      },
+      {
+        type: "select",
+        name: "selectComponent",
+        message: "Select a component to update",
+        choices: getExistingComponents().map((component) => ({
+          name: component,
+          value: component,
+        })),
+        loop: false,
       },
       {
         type: "checkbox",
@@ -92,12 +155,15 @@ export default function plop(plop: PlopNext) {
         })),
         loop: false,
         required: true,
-        validate: (selected: string[]) => {
-          if (selected.length === 0) {
+        validate: (choices) => {
+          let choicesNames = choices.map((choice) => {
+            return choice.value || choice.name || choice;
+          });
+          if (choicesNames.length === 0) {
             return "You must select at least one component";
           } else {
             //card and modal cannot be selected together for this example
-            if (selected.includes("Card") && selected.includes("Modal")) {
+            if (choicesNames.includes("Card") && choicesNames.includes("Modal")) {
               return "Card and Modal cannot be selected together";
             }
           }
@@ -128,7 +194,7 @@ export default function plop(plop: PlopNext) {
         type: "search",
         name: "searchComponent",
         message: "Search for a component",
-        source: async (input: string) => {
+        source: async (input) => {
           if (!input) {
             return [];
           }
@@ -142,6 +208,7 @@ export default function plop(plop: PlopNext) {
         type: "expand",
         name: "expandChoice",
         message: "Conflict on file.js",
+        expanded: false,
         choices: [
           {
             key: "y",
@@ -158,17 +225,75 @@ export default function plop(plop: PlopNext) {
             name: "Show diff",
             value: "diff",
           },
+          new Separator(),
           {
             key: "x",
             name: "Abort",
             value: "abort",
           },
         ],
-        default: "y",
+        default: "H",
+      },
+      {
+        type: "number",
+        name: "numberInput",
+        message: "Enter a number",
+        default: 0,
+        min: 0,
+        max: 100,
+        validate: (value) => {
+          if (isNaN(value as unknown as number)) {
+            return "Please enter a valid number";
+          }
+          if ((value as unknown as number) < 0 || (value as unknown as number) > 100) {
+            return "Number must be between 0 and 100";
+          }
+          return true;
+        },
+      },
+      {
+        type: "rawlist",
+        name: "rawlistChoice",
+        message: "Choose an option",
+        choices: [
+          {
+            name: "Option 1",
+            value: "option1",
+          },
+          {
+            name: "Option 2",
+            value: "option2",
+          },
+        ],
+      },
+      {
+        type: "editor",
+        name: "editorInput",
+        message: "Provide a longer description",
+        default: '# This prompt was automatically opened. You can write anything:\n\n',
+        postfix: ".md",
+        //file: ,
+        waitForUserInput: true,
       },
     ],
     actions: (answers) => {
       console.log("Received answers:", answers);
+      return [];
+    },
+  });
+
+  plop.setGenerator("helloWorld", {
+    description: "Simple generator that says hello",
+    prompts: [
+      {
+        type: "input",
+        name: "name",
+        message: "What is your name?",
+        default: "World",
+      },
+    ],
+    actions: (answers) => {
+      console.log(`Hello, ${answers.name}!`);
       return [];
     },
   });

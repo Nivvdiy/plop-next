@@ -1,5 +1,9 @@
 import type { PromptHandler, PromptHandlerConfig } from "./types";
 
+interface PromptAskOptions {
+  allowTheme?: boolean;
+}
+
 /**
  * Registry that maps prompt type strings to their PromptHandler.
  *
@@ -49,7 +53,11 @@ export class PromptHandlerRegistry {
    * @returns      The user's answer.
    * @throws       If no handler is registered for the type and no "input" fallback exists.
    */
-  async ask(type: string, config: PromptHandlerConfig): Promise<unknown> {
+  async ask(
+    type: string,
+    config: PromptHandlerConfig,
+    options: PromptAskOptions = {},
+  ): Promise<unknown> {
     const handler = this.map.get(type) ?? this.map.get("input");
     if (!handler) {
       throw new Error(
@@ -57,10 +65,10 @@ export class PromptHandlerRegistry {
           `Register one with core.registerPrompt(handler).`,
       );
     }
-    if (Object.prototype.hasOwnProperty.call(config, "theme")) {
+    if (!options.allowTheme && Object.prototype.hasOwnProperty.call(config, "theme")) {
       throw new Error(
-        `The "theme" prompt field is not supported in plop-next yet. ` +
-          `Remove it from prompt "${String(config.name)}".`,
+        `The "theme" prompt field is not supported in plop-next. ` +
+          `Use core.setTheme({ ... }) instead.`,
       );
     }
     return handler.ask(type, config);

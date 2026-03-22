@@ -12,6 +12,7 @@ export const confirmPromptHandler: PromptHandler = {
       message,
       default: defaultValue,
       transformer,
+      theme,
       ...rest
     } = config;
 
@@ -19,7 +20,7 @@ export const confirmPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "confirm" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, default, transformer.`,
+          `Supported fields are: message, default, transformer, theme.`,
       );
     }
 
@@ -39,6 +40,7 @@ export const confirmPromptHandler: PromptHandler = {
       ...(transformer !== undefined && {
         transformer: transformer as (value: boolean) => string,
       }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };

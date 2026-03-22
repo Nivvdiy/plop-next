@@ -15,6 +15,7 @@ export const editorPromptHandler: PromptHandler = {
       postfix,
       waitForUserInput,
       file,
+      theme,
       ...rest
     } = config;
 
@@ -22,7 +23,7 @@ export const editorPromptHandler: PromptHandler = {
     if (unsupportedKeys.length > 0) {
       throw new Error(
         `Prompt type "editor" does not support: ${unsupportedKeys.join(", ")}. ` +
-          `Supported fields are: message, default, postfix, waitForUserInput, file, validate.`,
+          `Supported fields are: message, default, postfix, waitForUserInput, file, validate, theme.`,
       );
     }
 
@@ -57,6 +58,7 @@ export const editorPromptHandler: PromptHandler = {
       ...(postfix !== undefined && { postfix: String(postfix) }),
       ...(waitForUserInput !== undefined && { waitForUserInput }),
       ...(file !== undefined && { file: file as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
     });
   },
 };
