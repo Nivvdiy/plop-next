@@ -15,8 +15,10 @@ import {
 import { titleCase } from "title-case";
 import type {
   GeneratorConfig,
+  GeneratorMenuItem,
   PlopPrompt,
   LocaleTexts,
+  UnknownRecord,
   LocaleTag,
   Action,
   ActionsConfig,
@@ -25,6 +27,7 @@ import type {
   HandlebarsHelper,
   PromptRenderer,
   ActionExecutionOptions,
+  ActionExecutionResult,
   ActionStepResult,
   DefaultIncludeConfig,
   PlopNextTheme,
@@ -87,7 +90,17 @@ export interface I18nAdapter {
  * Central registry used by the CLI and optionally by the i18n plugin.
  * Should never be instantiated directly by end-users: the CLI boots it.
  */
-type GeneratorEntry = { kind: "generator"; name: string } | { kind: "separator"; text?: string };
+interface GeneratorDefinitionEntry {
+  kind: "generator";
+  name: string;
+}
+
+interface GeneratorSeparatorEntry {
+  kind: "separator";
+  text?: string;
+}
+
+type GeneratorEntry = GeneratorDefinitionEntry | GeneratorSeparatorEntry;
 
 export class PlopNextCore {
   private readonly generators = new Map<string, GeneratorConfig>();
@@ -104,7 +117,7 @@ export class PlopNextCore {
   private defaultInclude: DefaultIncludeConfig = {};
   private theme: PlopNextTheme = {};
   private pkgCachePath?: string;
-  private pkgCache?: Record<string, unknown>;
+  private pkgCache?: UnknownRecord;
 
   constructor() {
     this.registerBuiltInHelpers();
@@ -258,18 +271,18 @@ export class PlopNextCore {
   }
 
   getHelper(name: string): HandlebarsHelper | undefined {
-    const helpers = Handlebars.helpers as Record<string, unknown>;
+    const helpers = Handlebars.helpers as UnknownRecord;
     const helper = helpers[name];
     return typeof helper === "function" ? (helper as HandlebarsHelper) : undefined;
   }
 
   getHelperList(): string[] {
-    const helpers = Handlebars.helpers as Record<string, unknown>;
+    const helpers = Handlebars.helpers as UnknownRecord;
     return Object.keys(helpers).filter((name) => typeof helpers[name] === "function");
   }
 
   getPartial(name: string): string | undefined {
-    const partials = Handlebars.partials as Record<string, unknown>;
+    const partials = Handlebars.partials as UnknownRecord;
     const partial = partials[name];
 
     if (typeof partial === "string") {
@@ -281,7 +294,7 @@ export class PlopNextCore {
   }
 
   getPartialList(): string[] {
-    const partials = Handlebars.partials as Record<string, unknown>;
+    const partials = Handlebars.partials as UnknownRecord;
     return Object.keys(partials);
   }
 
@@ -366,8 +379,8 @@ export class PlopNextCore {
     return this.generators.get(name);
   }
 
-  getGeneratorList(): ({ name: string; description?: string } | SeparatorLike)[] {
-    const result: ({ name: string; description?: string } | SeparatorLike)[] = [];
+  getGeneratorList(): GeneratorMenuItem[] {
+    const result: GeneratorMenuItem[] = [];
     for (const entry of this.generatorEntries) {
       if (entry.kind === "separator") {
         result.push({ type: "separator" as const, separator: entry.text ?? "" });
@@ -505,7 +518,7 @@ export class PlopNextCore {
     actions: Action[],
     answers: Record<string, unknown>,
     options: ActionExecutionOptions = {},
-  ): Promise<{ steps: ActionStepResult[]; failed: boolean }> {
+  ): Promise<ActionExecutionResult> {
     const runner = new ActionRunner(this, {
       dest: options.dest,
       force: options.force,
@@ -676,7 +689,7 @@ export class PlopNextCore {
     return String(value);
   }
 
-  private loadPackageJsonNearPlopfile(): Record<string, unknown> | undefined {
+  private loadPackageJsonNearPlopfile(): UnknownRecord | undefined {
     const baseDirectory = this.plopfilePath ? dirname(this.plopfilePath) : this.destBasePath;
     const packagePath = resolve(baseDirectory, "package.json");
 
@@ -693,7 +706,7 @@ export class PlopNextCore {
 
     try {
       const raw = readFileSync(packagePath, "utf8");
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const parsed = JSON.parse(raw) as UnknownRecord;
       this.pkgCache = parsed;
       return parsed;
     } catch {
@@ -702,7 +715,7 @@ export class PlopNextCore {
     }
   }
 
-  private getPathValue(source: Record<string, unknown>, propertyPath: string): unknown {
+  private getPathValue(source: UnknownRecord, propertyPath: string): unknown {
     const segments = propertyPath.split(".").filter((segment) => segment.length > 0);
     let current: unknown = source;
 
@@ -711,7 +724,7 @@ export class PlopNextCore {
         return undefined;
       }
 
-      const record = current as Record<string, unknown>;
+      const record = current as UnknownRecord;
       if (!(segment in record)) {
         return undefined;
       }
@@ -722,7 +735,7 @@ export class PlopNextCore {
     return current;
   }
 
-  private lookupValue(data: Record<string, unknown>, path: string): unknown {
+  private lookupValue(data: UnknownRecord, path: string): unknown {
     const keys = path.split(".").filter(Boolean);
     let current: unknown = data;
 
@@ -731,7 +744,7 @@ export class PlopNextCore {
         return undefined;
       }
 
-      const record = current as Record<string, unknown>;
+      const record = current as UnknownRecord;
       current = record[key];
     }
 
@@ -846,7 +859,7 @@ export class PlopNextCore {
     };
   }
 
-  private isRecord(value: unknown): value is Record<string, unknown> {
+  private isRecord(value: unknown): value is UnknownRecord {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 }

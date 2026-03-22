@@ -11,6 +11,7 @@ import {
   PlopfileLoadError,
   PlopfileExportError,
   type ErrorVerbosity,
+  type UnknownRecord,
 } from "@plop-next/core";
 import { PlopNextRunner } from "./PlopNextRunner";
 
@@ -44,6 +45,9 @@ export interface CLIOptions {
 }
 
 type LiftoffEnv = Liftoff.LiftoffEnv;
+type RespawnChild = {
+  pid: number;
+};
 
 export class PlopNextCLI {
   private readonly liftoff: InstanceType<typeof Liftoff>;
@@ -59,7 +63,7 @@ export class PlopNextCLI {
       v8flags,
     });
 
-    this.liftoff.on("respawn", (flags: string[], child: { pid: number }) => {
+    this.liftoff.on("respawn", (flags: string[], child: RespawnChild) => {
       console.log(pc.dim(`Detected v8 flags: ${flags.join(", ")}`));
       console.log(pc.dim(`Respawned to PID: ${child.pid}`));
     });
@@ -106,7 +110,7 @@ export class PlopNextCLI {
 
       try {
         // Prefer require() first so Liftoff/interpret loaders (e.g. .ts) are used.
-        plopfileMod = this.require(env.configPath);
+            plopfileMod = this.require(env.configPath);
       } catch (err) {
         requireError = err instanceof Error ? err : new Error(String(err));
         try {
@@ -119,8 +123,8 @@ export class PlopNextCLI {
       }
 
       // Support both ESM default export and CJS module.exports.
-      const setup =
-        (plopfileMod as Record<string, unknown>)?.default ?? plopfileMod;
+          const setup =
+            (plopfileMod as UnknownRecord)?.default ?? plopfileMod;
 
       if (typeof setup !== "function") {
         throw new PlopfileExportError();

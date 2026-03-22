@@ -3,6 +3,7 @@ import type {
   LocaleTexts,
   LocaleTag,
   PlopPrompt,
+  UnknownRecord,
   UseI18nOptions,
 } from "@plop-next/core";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -12,6 +13,8 @@ import { I18nRegistry } from "./I18nRegistry";
 
 type LocalesBundle = Record<string, LocaleTexts>;
 type LocaleSource = LocaleTexts | LocalesBundle | string;
+type NamedChoice = { name: string; value: unknown };
+type PromptRecord = PlopPrompt & UnknownRecord;
 
 export interface RegisterLocaleOptions {
   /** If true, this locale becomes the active locale immediately. */
@@ -368,7 +371,7 @@ export class PlopNextI18n {
 
     return prompts.map((prompt) => {
       const resolvedPrompt: PlopPrompt = { ...prompt };
-      const resolvedPromptRecord = resolvedPrompt as unknown as Record<string, unknown>;
+      const resolvedPromptRecord = resolvedPrompt as PromptRecord;
 
       const messageFallback =
         typeof prompt.message === "string" ? prompt.message : undefined;
@@ -384,7 +387,7 @@ export class PlopNextI18n {
       }
 
       // Handle choices if they exist on this prompt type
-      const promptRecord = prompt as unknown as Record<string, unknown>;
+      const promptRecord = prompt as PromptRecord;
       const choices = promptRecord["choices"];
       if (Array.isArray(choices)) {
         resolvedPromptRecord["choices"] = this.translateChoices(generatorName, prompt.name, choices);
@@ -467,8 +470,8 @@ export class PlopNextI18n {
   private translateChoices(
     generatorName: string,
     promptName: string,
-    choices: Array<string | { name: string; value: unknown }>,
-  ): Array<string | { name: string; value: unknown }> {
+    choices: Array<string | NamedChoice>,
+  ): Array<string | NamedChoice> {
     return choices.map((choice) => {
       if (typeof choice === "string") {
         const key = `${generatorName}.${promptName}.choices.${choice}`;
@@ -493,7 +496,7 @@ export class PlopNextI18n {
     });
   }
 
-  private choiceKey(choice: { name: string; value: unknown }): string {
+  private choiceKey(choice: NamedChoice): string {
     if (typeof choice.value === "string" || typeof choice.value === "number") {
       return String(choice.value);
     }

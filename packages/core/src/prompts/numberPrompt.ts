@@ -1,7 +1,10 @@
 import { number as numberPrompt } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type NumberPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const numberPromptHandler: PromptHandler = {
   types: ["number"],
@@ -52,7 +55,7 @@ export const numberPromptHandler: PromptHandler = {
       throw new Error('Prompt type "number" expects "validate" to be a function.');
     }
 
-    const runNumberPrompt = numberPrompt as unknown as NumberPromptFn;
+    const runNumberPrompt = numberPrompt as unknown as InquirerPromptFn;
 
     return runNumberPrompt({
       message: String(message ?? ""),
@@ -64,7 +67,7 @@ export const numberPromptHandler: PromptHandler = {
       ...(max !== undefined && { max }),
       ...(step !== undefined && { step }),
       ...(required !== undefined && { required }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

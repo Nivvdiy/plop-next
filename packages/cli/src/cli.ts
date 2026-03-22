@@ -10,7 +10,16 @@ import { CORE_DEFAULT_HELP_TEXTS } from "@plop-next/core";
 import type { HelpTexts } from "@plop-next/core";
 
 const require = createRequire(import.meta.url);
-const pkg = require("../package.json") as { version: string; name: string };
+type CliPackageInfo = {
+  version: string;
+  name: string;
+};
+
+type PackageManagerField = {
+  packageManager?: string;
+};
+
+const pkg = require("../package.json") as CliPackageInfo;
 
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
@@ -69,7 +78,7 @@ function detectPackageManager(projectDir: string): PackageManager {
   const packageJsonPath = resolve(projectDir, "package.json");
   if (existsSync(packageJsonPath)) {
     try {
-      const raw = require(packageJsonPath) as { packageManager?: string };
+      const raw = require(packageJsonPath) as PackageManagerField;
       const packageManager = raw.packageManager?.toLowerCase() ?? "";
       if (packageManager.startsWith("yarn@")) return "yarn";
       if (packageManager.startsWith("pnpm@")) return "pnpm";

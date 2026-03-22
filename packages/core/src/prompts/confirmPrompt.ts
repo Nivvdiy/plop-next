@@ -1,7 +1,10 @@
 import { confirm } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type ConfirmPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const confirmPromptHandler: PromptHandler = {
   types: ["confirm"],
@@ -32,7 +35,7 @@ export const confirmPromptHandler: PromptHandler = {
       throw new Error('Prompt type "confirm" expects "transformer" to be a function.');
     }
 
-    const runConfirm = confirm as unknown as ConfirmPromptFn;
+    const runConfirm = confirm as unknown as InquirerPromptFn;
 
     return runConfirm({
       message: String(message ?? ""),
@@ -40,7 +43,7 @@ export const confirmPromptHandler: PromptHandler = {
       ...(transformer !== undefined && {
         transformer: transformer as (value: boolean) => string,
       }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

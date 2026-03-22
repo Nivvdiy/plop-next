@@ -1,7 +1,10 @@
 import { expand } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type ExpandPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const expandPromptHandler: PromptHandler = {
   types: ["expand"],
@@ -37,13 +40,13 @@ export const expandPromptHandler: PromptHandler = {
       throw new Error('Prompt type "expand" expects "default" to be a string key.');
     }
 
-    const runExpand = expand as unknown as ExpandPromptFn;
+    const runExpand = expand as unknown as InquirerPromptFn;
     return runExpand({
       message: String(message ?? ""),
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(expanded !== undefined && { expanded }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

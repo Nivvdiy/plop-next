@@ -1,7 +1,10 @@
 import { select } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type PromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const selectPromptHandler: PromptHandler = {
   types: ["list", "select"],
@@ -43,14 +46,14 @@ export const selectPromptHandler: PromptHandler = {
       throw new Error('Prompt type "select" expects "loop" to be a boolean.');
     }
 
-    const runSelect = select as unknown as PromptFn;
+    const runSelect = select as unknown as InquirerPromptFn;
     return runSelect({
       message: String(message ?? ""),
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(pageSize !== undefined && { pageSize }),
       ...(loop !== undefined && { loop }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

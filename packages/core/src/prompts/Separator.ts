@@ -3,6 +3,10 @@ export interface SeparatorLike {
   separator: string;
 }
 
+type ValueWithType = {
+  type?: unknown;
+};
+
 /**
  * Prompt choices separator compatible with @inquirer/core.
  * Use this in plopfiles to avoid importing Separator from inquirer directly.
@@ -20,7 +24,7 @@ export class Separator implements SeparatorLike {
       choice &&
         typeof choice === "object" &&
         "type" in choice &&
-        (choice as { type?: unknown }).type === "separator",
+        (choice as ValueWithType).type === "separator",
     );
   }
 }

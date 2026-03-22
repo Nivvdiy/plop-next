@@ -5,6 +5,9 @@
 /** Flat or nested map of translation strings. */
 export type LocaleTexts = Record<string, unknown>;
 
+/** Generic object map used for dynamic/interoperability paths. */
+export type UnknownRecord = Record<string, unknown>;
+
 /** BCP-47 locale tag, e.g. "en", "fr", "es". */
 export type LocaleTag = string;
 
@@ -31,6 +34,19 @@ export type PlopNextTheme = Partial<Theme>;
 // ─────────────────────────────────────────────
 
 import type { SeparatorLike } from "./prompts/Separator";
+
+// ─────────────────────────────────────────────
+//  Generators
+// ─────────────────────────────────────────────
+
+/** Public generator item displayed in the CLI list. */
+export interface GeneratorListItem {
+  name: string;
+  description?: string;
+}
+
+/** Public generator menu item displayed by the runner (generator or separator). */
+export type GeneratorMenuItem = GeneratorListItem | SeparatorLike;
 
 /**
  * Generic validate callback — T is the answer value type for the prompt.
@@ -115,8 +131,16 @@ export type SearchChoiceItem =
 
 export type SearchSourceFn = (
   term: string | undefined,
-  opt: { signal: AbortSignal },
+  opt: SearchSourceContext,
 ) => ReadonlyArray<SearchChoiceItem> | Promise<ReadonlyArray<SearchChoiceItem>>;
+
+export interface SearchSourceContext {
+  signal: AbortSignal;
+}
+
+export interface PromptTransformContext {
+  isFinal: boolean;
+}
 
 /** Checkbox choice item. */
 export type CheckboxChoiceItem =
@@ -183,7 +207,7 @@ export interface PlopPromptBase {
 export interface PlopPromptInput extends PlopPromptBase {
   type: "input";
   /** Transform/format the raw value for display (visual only, does not affect stored value). */
-  transformer?: (value: string, context: { isFinal: boolean }) => string;
+  transformer?: (value: string, context: PromptTransformContext) => string;
   /** RegExp pattern the input must match. */
   pattern?: RegExp;
   /** Error message shown when pattern is not matched. */
@@ -367,6 +391,11 @@ export interface ActionStepResult {
   status: "success" | "error";
   message: string;
   path?: string;
+}
+
+export interface ActionExecutionResult {
+  steps: ActionStepResult[];
+  failed: boolean;
 }
 
 export type DefaultIncludeConfig = Record<string, unknown>;

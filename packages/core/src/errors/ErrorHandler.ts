@@ -2,7 +2,7 @@ import { appendFileSync } from "node:fs";
 import { dirname } from "node:path";
 import pc from "picocolors";
 import type { PlopError } from "./PlopError";
-import type { PlopNextTheme } from "../types";
+import type { PlopNextTheme, UnknownRecord } from "../types";
 import { defaultTheme } from "../theme";
 
 export type ErrorTranslator = (
@@ -164,7 +164,7 @@ export class ErrorHandler {
     if (customKeys.length > 0) {
       parts.push("\nAdditional Context:");
       for (const key of customKeys) {
-        const value = (error as unknown as Record<string, unknown>)[key];
+        const value = (error as unknown as UnknownRecord)[key];
         if (value instanceof Error) {
           parts.push(`  ${key}:`);
           parts.push(`    ${value.message}`);

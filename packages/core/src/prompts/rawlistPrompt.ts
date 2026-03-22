@@ -1,7 +1,10 @@
 import { rawlist } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type RawlistPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const rawlistPromptHandler: PromptHandler = {
   types: ["rawlist"],
@@ -33,13 +36,13 @@ export const rawlistPromptHandler: PromptHandler = {
       throw new Error('Prompt type "rawlist" expects "loop" to be a boolean.');
     }
 
-    const runRawlist = rawlist as unknown as RawlistPromptFn;
+    const runRawlist = rawlist as unknown as InquirerPromptFn;
     return runRawlist({
       message: String(message ?? ""),
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(loop !== undefined && { loop }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

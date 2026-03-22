@@ -1,3 +1,5 @@
+import type { UnknownRecord } from "../types";
+
 /**
  * Config passed to a PromptHandler's ask() method.
  * Contains all prompt fields except the plop-next-only keys
@@ -7,12 +9,21 @@ export interface PromptHandlerConfig {
   /** Answer key — included so handlers can forward it if needed. */
   name: string;
   /** Internal use: resolved by core.setTheme({ ... }). */
-  theme?: Record<string, unknown>;
+  theme?: PromptThemeConfig;
   message?: unknown;
   default?: unknown;
   validate?: unknown;
   [key: string]: unknown;
 }
+
+/** Raw config shape expected by @inquirer prompt functions. */
+export type InquirerPromptFn = (config: UnknownRecord) => Promise<unknown>;
+
+/** Theme payload forwarded to @inquirer prompt functions. */
+export type PromptThemeConfig = UnknownRecord;
+
+/** File payload used by editor prompt. */
+export type PromptFileConfig = UnknownRecord;
 
 /**
  * Contract for a specialised prompt handler.

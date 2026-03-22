@@ -1,17 +1,11 @@
 import { search } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type SearchChoiceItem =
-  | string
-  | {
-      value: unknown;
-      name?: string;
-      description?: string;
-      short?: string;
-      disabled?: boolean | string;
-    };
-
-type SearchPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
+import type { SearchSourceFn } from "../types";
 
 export const searchPromptHandler: PromptHandler = {
   types: ["search"],
@@ -48,20 +42,17 @@ export const searchPromptHandler: PromptHandler = {
       throw new Error('Prompt type "search" expects "validate" to be a function.');
     }
 
-    const runSearch = search as unknown as SearchPromptFn;
+    const runSearch = search as unknown as InquirerPromptFn;
 
     return runSearch({
       message: String(message ?? ""),
-      source: source as (
-        term: string | undefined,
-        opt: { signal: AbortSignal },
-      ) => ReadonlyArray<SearchChoiceItem> | Promise<ReadonlyArray<SearchChoiceItem>>,
+      source: source as SearchSourceFn,
       ...(pageSize !== undefined && { pageSize }),
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(validate !== undefined && {
         validate: validate as (value: unknown) => boolean | string | Promise<boolean | string>,
       }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

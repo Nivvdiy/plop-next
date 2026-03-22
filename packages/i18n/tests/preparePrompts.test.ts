@@ -3,6 +3,11 @@ import { PlopNextI18n } from "../src/PlopNextI18n";
 import { PlopNextCore } from "@plop-next/core";
 import type { PlopPrompt } from "@plop-next/core";
 
+type NamedChoice = {
+  name: string;
+  value: string;
+};
+
 /**
  * Tests pour le système i18n granulaire incluant:
  * - Traductions des prompts simples
@@ -210,7 +215,7 @@ describe("PlopNextI18n — preparePrompts", () => {
 
       const prepared = core.preparePrompts("generator", prompts);
       const prompt: any = prepared[0];
-      const choices = prompt.choices as Array<{ name: string; value: string }>;
+      const choices = prompt.choices as Array<NamedChoice>;
 
       expect(choices[0].name).toBe("Add a file");
       expect(choices[1].name).toBe("Remove a file");
@@ -243,7 +248,7 @@ describe("PlopNextI18n — preparePrompts", () => {
 
       const prepared = core.preparePrompts("form", prompts);
         const prompt: any = prepared[0];
-      const choices = prompt.choices as Array<{ name: string; value: string }>;
+      const choices = prompt.choices as Array<NamedChoice>;
 
       // Button translated by value key "btn"
       expect(choices[0].name).toBeDefined();

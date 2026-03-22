@@ -1,17 +1,11 @@
 import { checkbox } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type CheckboxSelectedChoice = {
-  value: unknown;
-  name: string;
-  checkedName: string;
-  description?: string;
-  short: string;
-  disabled: boolean | string;
-  checked: boolean;
-};
-
-type CheckboxPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type { CheckboxSelectedChoice } from "../types";
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const checkboxPromptHandler: PromptHandler = {
   types: ["checkbox"],
@@ -38,7 +32,7 @@ export const checkboxPromptHandler: PromptHandler = {
       throw new Error('Prompt type "checkbox" does not support "default". Use choice.checked instead.');
     }
 
-    const runCheckbox = checkbox as unknown as CheckboxPromptFn;
+    const runCheckbox = checkbox as unknown as InquirerPromptFn;
 
     return runCheckbox({
       message: String(message ?? ""),
@@ -52,7 +46,7 @@ export const checkboxPromptHandler: PromptHandler = {
           ) => boolean | string | Promise<boolean | string>,
       }),
       ...(required !== undefined && { required: Boolean(required) }),
-      ...(shortcuts !== undefined && { shortcuts: shortcuts as Record<string, unknown> }),
+      ...(shortcuts !== undefined && { shortcuts: shortcuts as PromptThemeConfig }),
       ...rest,
     });
   },

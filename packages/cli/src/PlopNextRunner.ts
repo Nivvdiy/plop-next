@@ -5,6 +5,9 @@ import type {
   PlopNextCore,
   PlopPrompt,
   ErrorHandler,
+  GeneratorListItem,
+  GeneratorMenuItem,
+  UnknownRecord,
 } from "@plop-next/core";
 import {
   NoGeneratorsError,
@@ -30,6 +33,12 @@ export interface RunnerOptions {
   /** Error handler for configurable error reporting. */
   errorHandler?: ErrorHandler;
 }
+
+type ChoiceWithType = {
+  type?: unknown;
+};
+
+type PromptRecord = PlopPrompt & UnknownRecord;
 
 /**
  * Interactive runner: displays the generator menu and executes the chosen one.
@@ -131,7 +140,7 @@ export class PlopNextRunner {
         value = this.coerceBypassValue(promptType, bypass, inquirerConfig, promptName);
       } else {
         // Dynamically import the right inquirer prompt.
-        value = await this.askPrompt(promptType, promptName, inquirerConfig as Record<string, unknown>);
+        value = await this.askPrompt(promptType, promptName, inquirerConfig as UnknownRecord);
       }
 
       // Apply plop-next filter if provided
@@ -197,7 +206,7 @@ export class PlopNextRunner {
   }
 
   private async askGeneratorSelection(
-    list: Array<{ name: string; description?: string } | { type: "separator"; separator: string }>,
+    list: GeneratorMenuItem[],
   ): Promise<string> {
     const choices = [
       ...list.map((item) => {
@@ -205,7 +214,11 @@ export class PlopNextRunner {
           return new Separator(item.separator || undefined);
         }
 
-        const g = item as { name: string; description?: string };
+        if (!this.isGeneratorListItem(item)) {
+          return new Separator();
+        }
+
+        const g = item;
         const translatedDescription = this.core.t(
           `${g.name}.description`,
           [],
@@ -253,7 +266,8 @@ export class PlopNextRunner {
       return undefined;
     }
 
-    const resolved: Record<string, unknown> = { ...(prompt as unknown as Record<string, unknown>) };
+    const promptRecord = prompt as PromptRecord;
+    const resolved: UnknownRecord = { ...promptRecord };
 
     if (typeof prompt.message === "function") {
       resolved["message"] = String(prompt.message(answers));
@@ -263,7 +277,7 @@ export class PlopNextRunner {
       resolved["default"] = await (prompt.default as (a: Record<string, unknown>) => Promise<unknown>)(answers);
     }
 
-    const rawChoices = (prompt as unknown as Record<string, unknown>)["choices"];
+    const rawChoices = promptRecord["choices"];
     if (typeof rawChoices === "function") {
       resolved["choices"] = await (rawChoices as (a: Record<string, unknown>) => Promise<unknown>)(answers);
     }
@@ -290,6 +304,10 @@ export class PlopNextRunner {
     }
 
     return raw;
+  }
+
+  private isGeneratorListItem(item: GeneratorMenuItem): item is GeneratorListItem {
+    return "name" in item && typeof item.name === "string";
   }
 
   private coerceBypassValue(
@@ -353,7 +371,7 @@ export class PlopNextRunner {
       if (!choice || typeof choice !== "object") {
         return false;
       }
-      return (choice as { type?: unknown }).type !== "separator";
+      return (choice as ChoiceWithType).type !== "separator";
     });
 
     const asNumber = Number(raw);
@@ -371,7 +389,7 @@ export class PlopNextRunner {
         continue;
       }
 
-      const record = choice as Record<string, unknown>;
+      const record = choice as UnknownRecord;
 
       if (typeof record["value"] !== "undefined" && String(record["value"]) === raw) {
         return record["value"];
@@ -403,7 +421,7 @@ export class PlopNextRunner {
       return choice;
     }
 
-    const record = choice as Record<string, unknown>;
+    const record = choice as UnknownRecord;
     if (Object.prototype.hasOwnProperty.call(record, "value")) {
       return record["value"];
     }

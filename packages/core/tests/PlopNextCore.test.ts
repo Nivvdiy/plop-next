@@ -5,6 +5,14 @@ import { join } from "node:path";
 import { PlopNextCore } from "../src/PlopNextCore";
 import type { GeneratorConfig } from "../src/types";
 
+type ThemeStyleProbe = {
+  style?: {
+    message?: unknown;
+    answer?: unknown;
+  };
+};
+import { GeneratorMenuItem, GeneratorListItem } from "../dist";
+
 describe("PlopNextCore", () => {
   let core: PlopNextCore;
 
@@ -29,9 +37,9 @@ describe("PlopNextCore", () => {
     core.setGenerator("b", { prompts: [], actions: [] });
     const list = core.getGeneratorList();
     expect(list).toHaveLength(2);
-    expect(list[0].name).toBe("a");
-    expect(list[0].description).toBe("Alpha");
-    expect(list[1].name).toBe("b");
+    expect((list[0] as GeneratorListItem).name).toBe("a");
+    expect((list[0] as GeneratorListItem).description).toBe("Alpha");
+    expect((list[1] as GeneratorListItem).name).toBe("b");
   });
 
   it("setGenerator is chainable", () => {
@@ -96,7 +104,7 @@ describe("PlopNextCore", () => {
       spinner: expect.any(Object),
     });
 
-    const style = (receivedTheme as { style?: { message?: unknown; answer?: unknown } }).style;
+    const style = (receivedTheme as ThemeStyleProbe).style;
     expect(typeof style?.message).toBe("function");
     expect(typeof style?.answer).toBe("function");
 

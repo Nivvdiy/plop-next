@@ -1,4 +1,5 @@
 import { CORE_DEFAULT_TEXTS } from "../defaultTexts";
+import type { UnknownRecord } from "../types";
 
 /**
  * Configuration for error behavior and reporting.
@@ -23,7 +24,7 @@ export interface ErrorTranslation {
 }
 
 function resolveDefaultErrorText(key: string, args: unknown[] = []): string {
-  const value = (CORE_DEFAULT_TEXTS.errors as Record<string, unknown>)[key];
+  const value = (CORE_DEFAULT_TEXTS.errors as UnknownRecord)[key];
 
   if (typeof value === "function") {
     return String((value as (...params: unknown[]) => unknown)(...args));

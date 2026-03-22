@@ -1,7 +1,10 @@
 import { password } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type PasswordPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const passwordPromptHandler: PromptHandler = {
   types: ["password"],
@@ -32,7 +35,7 @@ export const passwordPromptHandler: PromptHandler = {
       throw new Error('Prompt type "password" expects "validate" to be a function.');
     }
 
-    const runPassword = password as unknown as PasswordPromptFn;
+    const runPassword = password as unknown as InquirerPromptFn;
 
     return runPassword({
       message: String(message ?? ""),
@@ -40,7 +43,7 @@ export const passwordPromptHandler: PromptHandler = {
         validate: validate as (value: string) => boolean | string | Promise<boolean | string>,
       }),
       ...(mask !== undefined && { mask }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };

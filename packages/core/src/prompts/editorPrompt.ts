@@ -1,7 +1,11 @@
 import { editor } from "@inquirer/prompts";
-import type { PromptHandler, PromptHandlerConfig } from "./types";
-
-type EditorPromptFn = (config: Record<string, unknown>) => Promise<unknown>;
+import type {
+  InquirerPromptFn,
+  PromptFileConfig,
+  PromptHandler,
+  PromptHandlerConfig,
+  PromptThemeConfig,
+} from "./types";
 
 export const editorPromptHandler: PromptHandler = {
   types: ["editor"],
@@ -47,7 +51,7 @@ export const editorPromptHandler: PromptHandler = {
       throw new Error('Prompt type "editor" expects "validate" to be a function.');
     }
 
-    const runEditor = editor as unknown as EditorPromptFn;
+    const runEditor = editor as unknown as InquirerPromptFn;
 
     return runEditor({
       message: String(message ?? ""),
@@ -57,8 +61,8 @@ export const editorPromptHandler: PromptHandler = {
       }),
       ...(postfix !== undefined && { postfix: String(postfix) }),
       ...(waitForUserInput !== undefined && { waitForUserInput }),
-      ...(file !== undefined && { file: file as Record<string, unknown> }),
-      ...(theme !== undefined && { theme: theme as Record<string, unknown> }),
+      ...(file !== undefined && { file: file as PromptFileConfig }),
+      ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
 };
