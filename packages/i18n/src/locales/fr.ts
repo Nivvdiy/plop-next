@@ -39,8 +39,12 @@ export const FR_MESSAGES: LocaleTexts = {
       helpNavigate: "naviguer",
       helpSelect: "sélectionner",
     },
+    editor: {
+      waitingMessage: (enterKey: any) =>
+        `Appuyez sur ${enterKey} pour lancer votre éditeur préféré.`,
+    },
     password: {
-      maskedText: "[entrée masquée]",
+      maskedText: "[saisie masquée]",
     },
   },
 
@@ -54,8 +58,7 @@ export const FR_MESSAGES: LocaleTexts = {
       modifying: (path: string) => `Modification de ${path}`,
       modified: (path: string) => `✔ Modifié ${path}`,
       notFound: (path: string) => `Fichier introuvable : ${path}`,
-      patternNotFound: (path: string) =>
-        `Motif introuvable dans : ${path}`,
+      patternNotFound: (path: string) => `Motif introuvable dans : ${path}`,
     },
     append: {
       appending: (path: string) => `Ajout dans ${path}`,
@@ -70,7 +73,8 @@ export const FR_MESSAGES: LocaleTexts = {
     plopfileLoadFailed: (err: string) =>
       `Échec du chargement du plopfile : ${err}`,
     generatorNotFound: (name: string) => `Générateur "${name}" introuvable.`,
-    noGenerators: "Aucun générateur enregistre. Ajoutez-en dans votre plopfile.",
+    noGenerators:
+      "Aucun générateur enregistré. Ajoutez-en dans votre plopfile.",
     invalidPrompt: (name: string, reason: string) =>
       `Prompt invalide "${name}" : ${reason}`,
     bypassParse: (

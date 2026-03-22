@@ -35,6 +35,12 @@ describe("I18nRegistry — help texts (read-only)", () => {
     expect(help.examples).toBe("Exemplos:");
   });
 
+  it("returns Chinese help texts for 'zh'", () => {
+    const help = registry.getHelpTexts("zh");
+    expect(help.usage).toBe("用法:");
+    expect(help.examples).toBe("示例:");
+  });
+
   it("returns English help texts for an unknown locale", () => {
     const help = registry.getHelpTexts("de");
     expect(help.usage).toBe(CORE_DEFAULT_HELP_TEXTS.usage);

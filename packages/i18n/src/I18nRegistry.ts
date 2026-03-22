@@ -3,6 +3,7 @@ import { BASE_LOCALE, EN_MESSAGES } from "./locales/en";
 import { ES_MESSAGES } from "./locales/es";
 import { FR_MESSAGES } from "./locales/fr";
 import { PT_MESSAGES } from "./locales/pt";
+import { ZH_MESSAGES } from "./locales/zh";
 
 function resolvePath(obj: unknown, path: string): unknown {
   return path
@@ -25,6 +26,7 @@ export class I18nRegistry {
     this.locales.set("es", ES_MESSAGES);
     this.locales.set("fr", FR_MESSAGES);
     this.locales.set("pt", PT_MESSAGES);
+    this.locales.set("zh", ZH_MESSAGES);
   }
 
   registerTexts(locale: LocaleTag, texts: LocaleTexts): void {

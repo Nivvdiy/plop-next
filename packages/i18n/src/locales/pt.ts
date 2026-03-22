@@ -9,8 +9,7 @@ export const PT_MESSAGES: LocaleTexts = {
     welcome: "Bem-vindo ao plop-next! 🚀",
     welcomeMessage: null,
     selectGenerator: "Selecione um gerador",
-    noGenerators:
-      "Nenhum gerador registrado. Adicione-os no seu plopfile.",
+    noGenerators: "Nenhum gerador registrado. Adicione-os no seu plopfile.",
     generatorNotFound: (name: string) => `Gerador \"${name}\" nao encontrado.`,
     aborted: "Cancelado.",
     done: "Concluido!",
@@ -20,7 +19,7 @@ export const PT_MESSAGES: LocaleTexts = {
   inquirer: {
     confirm: {
       yesLabel: "Sim",
-      noLabel: "Nao",
+      noLabel: "Não",
       hintYes: "S/n",
       hintNo: "s/N",
     },
@@ -32,15 +31,19 @@ export const PT_MESSAGES: LocaleTexts = {
       helpNavigate: "navegar",
       helpSelect: "selecionar",
       helpSubmit: "enviar",
-      helpAll: "tudo",
+      helpAll: "todos",
       helpInvert: "inverter",
     },
     search: {
       helpNavigate: "navegar",
       helpSelect: "selecionar",
     },
+    editor: {
+      waitingMessage: (enterKey: any) =>
+        `Pressione ${enterKey} para abrir seu editor preferido.`,
+    },
     password: {
-      maskedText: "[entrada oculta]",
+      maskedText: "[entrada mascarada]",
     },
   },
 
@@ -54,8 +57,7 @@ export const PT_MESSAGES: LocaleTexts = {
       modifying: (path: string) => `Modificando ${path}`,
       modified: (path: string) => `✔ Modificado ${path}`,
       notFound: (path: string) => `Arquivo nao encontrado: ${path}`,
-      patternNotFound: (path: string) =>
-        `Padrao nao encontrado em: ${path}`,
+      patternNotFound: (path: string) => `Padrao nao encontrado em: ${path}`,
     },
     append: {
       appending: (path: string) => `Anexando em ${path}`,
@@ -67,11 +69,9 @@ export const PT_MESSAGES: LocaleTexts = {
     unknownAction: (type: string) => `Tipo de acao desconhecido: \"${type}\"`,
     plopfileNotFound:
       "Nao foi possivel encontrar um plopfile (plopfile.js ou plopfile.ts).",
-    plopfileLoadFailed: (err: string) =>
-      `Falha ao carregar o plopfile: ${err}`,
+    plopfileLoadFailed: (err: string) => `Falha ao carregar o plopfile: ${err}`,
     generatorNotFound: (name: string) => `Gerador \"${name}\" nao encontrado.`,
-    noGenerators:
-      "Nenhum gerador registrado. Adicione-os no seu plopfile.",
+    noGenerators: "Nenhum gerador registrado. Adicione-os no seu plopfile.",
     invalidPrompt: (name: string, reason: string) =>
       `Prompt invalido \"${name}\": ${reason}`,
     bypassParse: (
@@ -100,8 +100,7 @@ export const PT_MESSAGES: LocaleTexts = {
     usage: "Uso:",
     usage1: "Escolher na lista de geradores disponiveis",
     usage2: "Executar um gerador registrado com este nome",
-    usage3:
-      "Executar o gerador com dados de entrada para ignorar prompts",
+    usage3: "Executar o gerador com dados de entrada para ignorar prompts",
     options: "Opcoes:",
     optHelp: "Mostrar esta ajuda",
     optShowTypeNames: "Mostrar nomes de tipo em vez de abreviacoes",
@@ -118,8 +117,7 @@ export const PT_MESSAGES: LocaleTexts = {
     lowCwd:
       "Diretorio base para calcular caminhos relativos durante a busca do plopfile",
     lowPreload: "String ou array de modulos para carregar antes do plop-next",
-    lowDest:
-      "Escrever a saida nesta pasta em vez da pasta pai do plopfile",
+    lowDest: "Escrever a saida nesta pasta em vez da pasta pai do plopfile",
     lowNoProgress: "Desativar o spinner de progresso",
     lowCompletion: "Mostrar script de completacao de shell (bash|zsh|fish)",
     examples: "Exemplos:",

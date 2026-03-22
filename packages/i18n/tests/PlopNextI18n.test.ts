@@ -65,7 +65,7 @@ describe("PlopNextI18n", () => {
   });
 
   it("hasLocale returns false for unregistered locale", () => {
-    expect(i18n.hasLocale("zh")).toBe(false);
+    expect(i18n.hasLocale("ko")).toBe(false);
   });
 
   it("hasLocale returns true for EN (always registered)", () => {
@@ -78,6 +78,10 @@ describe("PlopNextI18n", () => {
 
   it("hasLocale returns true for PT (built-in)", () => {
     expect(i18n.hasLocale("pt")).toBe(true);
+  });
+
+  it("hasLocale returns true for ZH (built-in)", () => {
+    expect(i18n.hasLocale("zh")).toBe(true);
   });
 
   // ── registerLocale/registerLocales/registerTexts sources ───────
