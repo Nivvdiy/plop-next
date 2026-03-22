@@ -3,6 +3,7 @@ export { ActionRunner } from "./ActionRunner";
 export { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 export { registerBuiltInPromptHandlers } from "./prompts/registerBuiltins";
 export { defaultTheme } from "./theme";
+export { CORE_DEFAULT_TEXTS, CORE_DEFAULT_TEXTS_EN } from "./defaultTexts";
 export {
   askCustomPrompt,
   getCustomPrompt,
