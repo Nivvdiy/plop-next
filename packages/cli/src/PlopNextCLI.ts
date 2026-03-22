@@ -4,7 +4,14 @@ import pc from "picocolors";
 import { jsVariants } from "interpret";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
-import { PlopNextCore } from "@plop-next/core";
+import {
+  PlopNextCore,
+  ErrorHandler,
+  PlopfileNotFoundWarning,
+  PlopfileLoadError,
+  PlopfileExportError,
+  type ErrorVerbosity,
+} from "@plop-next/core";
 import { PlopNextRunner } from "./PlopNextRunner";
 
 export interface CLIOptions {
@@ -28,6 +35,10 @@ export interface CLIOptions {
   bypassPositionals?: string[];
   /** Named bypass values passed after `--` (e.g. --name value). */
   bypassNamed?: Record<string, string | boolean>;
+  /** Error verbosity level (simple | verbose | debug). Default: simple. */
+  errorVerbosity?: ErrorVerbosity;
+  /** Optional file path to log errors to. */
+  errorLogFile?: string;
 }
 
 type LiftoffEnv = Liftoff.LiftoffEnv;
@@ -35,8 +46,10 @@ type LiftoffEnv = Liftoff.LiftoffEnv;
 export class PlopNextCLI {
   private readonly liftoff: InstanceType<typeof Liftoff>;
   private readonly require = createRequire(import.meta.url);
+  private errorHandler: ErrorHandler;
 
   constructor() {
+    this.errorHandler = new ErrorHandler();
     this.liftoff = new Liftoff({
       name: "plop-next",    // sets processTitle + moduleName to "plop-next"
       configName: "plopfile",
@@ -71,59 +84,67 @@ export class PlopNextCLI {
     env: LiftoffEnv,
     options: CLIOptions,
   ): Promise<void> {
-    if (!env.configPath) {
-      console.error(
-        pc.red("✖ No plopfile found. Create a plopfile.js in your project."),
-      );
-      process.exitCode = 1;
-      return;
-    }
+    // Configure error handler
+    if (options.errorVerbosity) this.errorHandler.setVerbosity(options.errorVerbosity);
+    if (options.errorLogFile) this.errorHandler.setLogFile(options.errorLogFile);
 
-    const core = new PlopNextCore();
-    core.setPlopfilePath(env.configPath);
-
-    let plopfileMod: unknown;
     try {
-      // Prefer require() first so Liftoff/interpret loaders (e.g. .ts) are used.
-      plopfileMod = this.require(env.configPath);
-    } catch (requireError) {
-      try {
-        // Fallback for true ESM configs. On Windows, import() needs a file URL.
-        plopfileMod = await import(pathToFileURL(env.configPath).href);
-      } catch (importError) {
-        const requireMessage =
-          requireError instanceof Error ? requireError.message : String(requireError);
-        const importMessage =
-          importError instanceof Error ? importError.message : String(importError);
-        console.error(pc.red(`✖ Failed to load plopfile: ${env.configPath}`));
-        console.error(pc.dim(`  require(): ${requireMessage}`));
-        console.error(pc.dim(`  import(): ${importMessage}`));
-        process.exitCode = 1;
-        return;
+      if (!env.configPath) {
+        throw new PlopfileNotFoundWarning();
       }
+
+      const core = new PlopNextCore();
+      core.setPlopfilePath(env.configPath);
+
+      let plopfileMod: unknown;
+      let requireError: Error | undefined;
+      let importError: Error | undefined;
+
+      try {
+        // Prefer require() first so Liftoff/interpret loaders (e.g. .ts) are used.
+        plopfileMod = this.require(env.configPath);
+      } catch (err) {
+        requireError = err instanceof Error ? err : new Error(String(err));
+        try {
+          // Fallback for true ESM configs. On Windows, import() needs a file URL.
+          plopfileMod = await import(pathToFileURL(env.configPath).href);
+        } catch (err) {
+          importError = err instanceof Error ? err : new Error(String(err));
+          throw new PlopfileLoadError(env.configPath, requireError, importError);
+        }
+      }
+
+      // Support both ESM default export and CJS module.exports.
+      const setup =
+        (plopfileMod as Record<string, unknown>)?.default ?? plopfileMod;
+
+      if (typeof setup !== "function") {
+        throw new PlopfileExportError();
+      }
+
+      await (setup as (core: PlopNextCore) => void | Promise<void>)(core);
+
+      // Apply resolved runtime theme (including user overrides from plopfile)
+      // to centralized error rendering.
+      this.errorHandler.setTheme(core.getTheme());
+
+      const runner = new PlopNextRunner(core, {
+        dest:          options.dest,
+        force:         options.force,
+        progress:      options.progress ?? true,
+        showTypeNames: options.showTypeNames,
+        bypassPositionals: options.bypassPositionals,
+        bypassNamed: options.bypassNamed,
+        errorHandler: this.errorHandler,
+      });
+      await runner.run(options.generator);
+    } catch (error) {
+      const result = this.errorHandler.handle(error);
+      if (result.shouldExit) {
+        process.exit(result.exitCode);
+      }
+      process.exitCode = result.exitCode;
     }
-
-    // Support both ESM default export and CJS module.exports.
-    const setup =
-      (plopfileMod as Record<string, unknown>)?.default ?? plopfileMod;
-
-    if (typeof setup !== "function") {
-      console.error(pc.red("✖ Plopfile must export a default function."));
-      process.exitCode = 1;
-      return;
-    }
-
-    await (setup as (core: PlopNextCore) => void | Promise<void>)(core);
-
-    const runner = new PlopNextRunner(core, {
-      dest:          options.dest,
-      force:         options.force,
-      progress:      options.progress ?? true,
-      showTypeNames: options.showTypeNames,
-      bypassPositionals: options.bypassPositionals,
-      bypassNamed: options.bypassNamed,
-    });
-    await runner.run(options.generator);
   }
 }
 

@@ -61,6 +61,22 @@ export const EN_MESSAGES: LocaleTexts = {
     unknownAction: (type: string) => `Unknown action type: \"${type}\"`,
     plopfileNotFound: "Could not find a plopfile (plopfile.js or plopfile.ts).",
     plopfileLoadFailed: (err: string) => `Failed to load plopfile: ${err}`,
+    generatorNotFound: (name: string) => `Generator \"${name}\" not found.`,
+    noGenerators: "No generators registered. Add some to your plopfile.",
+    invalidPrompt: (name: string, reason: string) =>
+      `Invalid prompt \"${name}\": ${reason}`,
+    bypassParse: (
+      promptName: string,
+      promptType: string,
+      value: string,
+      detail?: string,
+    ) =>
+      `Cannot assign bypass value \"${value}\" to ${promptType} prompt \"${promptName}\"${detail ? `: ${detail}` : ""}`,
+    plopfileLoad: (path: string) => `Failed to load plopfile: ${path}`,
+    plopfileExport: "Plopfile must export a default function.",
+    userCancelled: "Prompt cancelled by user.",
+    plopfileNotFoundWarning:
+      "No plopfile found. Create a plopfile.js in your project.",
   },
 } as const;
 

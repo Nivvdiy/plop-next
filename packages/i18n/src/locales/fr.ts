@@ -69,5 +69,21 @@ export const FR_MESSAGES: LocaleTexts = {
       "Impossible de trouver un plopfile (plopfile.js ou plopfile.ts).",
     plopfileLoadFailed: (err: string) =>
       `Échec du chargement du plopfile : ${err}`,
+    generatorNotFound: (name: string) => `Generateur "${name}" introuvable.`,
+    noGenerators: "Aucun generateur enregistre. Ajoutez-en dans votre plopfile.",
+    invalidPrompt: (name: string, reason: string) =>
+      `Prompt invalide "${name}" : ${reason}`,
+    bypassParse: (
+      promptName: string,
+      promptType: string,
+      value: string,
+      detail?: string,
+    ) =>
+      `Impossible d'assigner la valeur de bypass "${value}" au prompt ${promptType} "${promptName}"${detail ? `: ${detail}` : ""}`,
+    plopfileLoad: (path: string) => `Echec du chargement du plopfile : ${path}`,
+    plopfileExport: "Le plopfile doit exporter une fonction par defaut.",
+    userCancelled: "Prompt annule par l'utilisateur.",
+    plopfileNotFoundWarning:
+      "Aucun plopfile trouve. Creez un plopfile.js dans votre projet.",
   },
 } as const;

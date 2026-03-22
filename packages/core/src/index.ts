@@ -10,6 +10,18 @@ export {
   registerCustomPrompt,
 } from "./prompts/customPrompt";
 export { Separator } from "./prompts/Separator";
+export { ErrorHandler } from "./errors/ErrorHandler";
+export {
+  PlopError,
+  GeneratorNotFoundError,
+  NoGeneratorsError,
+  InvalidPromptError,
+  BypassParseError,
+  PlopfileNotFoundWarning,
+  PlopfileLoadError,
+  PlopfileExportError,
+  UserCancelledError,
+} from "./errors/PlopError";
 export type { ActionRunnerOptions, ActionRunResult } from "./ActionRunner";
 export type {
   I18nAdapter,
@@ -38,3 +50,9 @@ export type {
 export type { Status, DefaultTheme, Theme } from "./theme";
 export type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
 export type { SeparatorLike } from "./prompts/Separator";
+export type {
+  ErrorVerbosity,
+  ErrorHandlerOptions,
+  ErrorHandleResult,
+} from "./errors/ErrorHandler";
+export type { ErrorConfig } from "./errors/PlopError";

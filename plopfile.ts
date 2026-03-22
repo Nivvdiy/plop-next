@@ -34,9 +34,17 @@ const customTheme: PlopNextTheme = {
     },
     actionLog: {
       success: (text: string) => styleText("yellow", `✔ ${text}`),
-      error: (text: string) => styleText(["bold", "red"], `✖ ${text}`),
+      //error: (text: string) => styleText(["bold", "red"], `✖ ${text}`),
       skipped: (text: string) => styleText("magenta", `● ${text}`),
       info: (text: string) => styleText("white", text),
+    },
+    errors: {
+      prefix: {
+        error: styleText(["bold", "red"], "✖"),
+        warning: styleText(["bold", "yellow"], "⚠"),
+      },
+      error: (text: string) => styleText(["bold", "red"], text),
+      warning: (text: string) => styleText(["bold", "yellow"], text),
     },
   },
 };
@@ -99,7 +107,7 @@ export default function plop(plop: PlopNext) {
 
   // ── Générateur "component" ──────────────────────────────────────────
 
-  /*plop.setGenerator("allTypesTest", {
+  plop.setGenerator("allTypesTest", {
     description: "Composant réutilisable (tsx + module.scss + index)",
     prompts: [
       {
@@ -282,7 +290,7 @@ export default function plop(plop: PlopNext) {
     },
   });
 
-  plop.setGenerator("helloWorld", {
+  /*plop.setGenerator("helloWorld", {
     description: "Simple generator that says hello",
     prompts: [
       {

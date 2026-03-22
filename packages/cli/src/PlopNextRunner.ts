@@ -1,7 +1,18 @@
 import { createSpinner } from "nanospinner";
 import pc from "picocolors";
 import { Separator } from "@inquirer/prompts";
-import type { PlopNextCore, PlopPrompt } from "@plop-next/core";
+import type {
+  PlopNextCore,
+  PlopPrompt,
+  ErrorHandler,
+} from "@plop-next/core";
+import {
+  NoGeneratorsError,
+  GeneratorNotFoundError,
+  InvalidPromptError,
+  BypassParseError,
+  UserCancelledError,
+} from "@plop-next/core";
 
 export interface RunnerOptions {
   /** Base directory for generated files (--dest). */
@@ -16,6 +27,8 @@ export interface RunnerOptions {
   bypassPositionals?: string[];
   /** Named bypass values keyed by prompt name. */
   bypassNamed?: Record<string, string | boolean>;
+  /** Error handler for configurable error reporting. */
+  errorHandler?: ErrorHandler;
 }
 
 /**
@@ -36,51 +49,36 @@ export class PlopNextRunner {
 
   async run(generatorName?: string): Promise<void> {
     const theme = this.getCliTheme();
-    try {
-      const list = this.core.getGeneratorList();
+    const list = this.core.getGeneratorList();
 
-      if (list.length === 0) {
-        console.error(
-          theme.error(this.core.t("cli.noGenerators", [], "No generators registered. Add some to your plopfile.")),
-        );
-        process.exit(1);
-      }
-
-      // ── Choose generator ─────────────────────────────────────────────
-      let chosen: string;
-
-      if (generatorName) {
-        if (!this.core.getGenerator(generatorName)) {
-          console.error(
-            theme.error(this.core.t("cli.generatorNotFound", [generatorName], `Generator \"${generatorName}\" not found.`)),
-          );
-          process.exit(1);
-        }
-        chosen = generatorName;
-      } else {
-        // Filter out separators to find actual generators
-        const generators = list.filter((item) => !("type" in item) || item.type !== "separator");
-        if (generators.length === 1 && generators[0] && "name" in generators[0]) {
-          chosen = generators[0].name;
-        } else {
-          const welcomeMessage = this.core.getWelcomeMessage();
-          if (welcomeMessage) {
-            console.log(theme.welcome(welcomeMessage));
-          }
-
-          chosen = await this.askGeneratorSelection(list);
-        }
-      }
-
-      await this.runGenerator(chosen);
-    } catch (error) {
-      if (this.isPromptCancelled(error)) {
-        console.log(theme.skipped(`\n${this.core.t("cli.promptCancelled", [], "Console exited by user.")}`));
-        process.exit(1);
-        return;
-      }
-      throw error;
+    if (list.length === 0) {
+      throw new NoGeneratorsError();
     }
+
+    // ── Choose generator ─────────────────────────────────────────────
+    let chosen: string;
+
+    if (generatorName) {
+      if (!this.core.getGenerator(generatorName)) {
+        throw new GeneratorNotFoundError(generatorName);
+      }
+      chosen = generatorName;
+    } else {
+      // Filter out separators to find actual generators
+      const generators = list.filter((item) => !("type" in item) || item.type !== "separator");
+      if (generators.length === 1 && generators[0] && "name" in generators[0]) {
+        chosen = generators[0].name;
+      } else {
+        const welcomeMessage = this.core.getWelcomeMessage();
+        if (welcomeMessage) {
+          console.log(theme.welcome(welcomeMessage));
+        }
+
+        chosen = await this.askGeneratorSelection(list);
+      }
+    }
+
+    await this.runGenerator(chosen);
   }
 
   // ── Private ──────────────────────────────────────────────────────
@@ -89,8 +87,7 @@ export class PlopNextRunner {
     const theme = this.getCliTheme();
     const config = this.core.getGenerator(name);
     if (!config) {
-      console.error(theme.error(this.core.t("cli.generatorNotFound", [name], `Generator "${name}" not found.`)));
-      process.exit(1);
+      throw new GeneratorNotFoundError(name);
     }
 
     console.log("\n" + theme.generatorTitle(name));
@@ -119,7 +116,7 @@ export class PlopNextRunner {
       const promptType = typeof type === "string" ? type : "input";
 
       if (typeof promptName !== "string" || promptName.length === 0) {
-        throw new Error("Prompt name must be a non-empty string.");
+        throw new InvalidPromptError(String(promptName), "Prompt name must be a non-empty string.");
       }
 
       // Skip if answer already exists and askAnswered is not true
@@ -188,7 +185,15 @@ export class PlopNextRunner {
     name: string,
     inquirerConfig: Record<string, unknown>,
   ): Promise<unknown> {
-    return this.core.askPrompt(type, { name, ...inquirerConfig });
+    try {
+      return await this.core.askPrompt(type, { name, ...inquirerConfig });
+    } catch (error) {
+      // @inquirer/prompts throws ExitPromptError when user presses Ctrl+C.
+      if (error instanceof Error && this.isPromptCancelled(error)) {
+        throw new UserCancelledError();
+      }
+      throw error;
+    }
   }
 
   private async askGeneratorSelection(
@@ -218,17 +223,25 @@ export class PlopNextRunner {
       new Separator(),
     ];
 
-    const selected = await this.core.askPrompt("select", {
-      name: "__generator",
-      message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
-      choices,
-    });
+    try {
+      const selected = await this.core.askPrompt("select", {
+        name: "__generator",
+        message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
+        choices,
+      });
 
-    if (typeof selected !== "string" || selected.length === 0) {
-      throw new Error("Generator selection returned an invalid value.");
+      if (typeof selected !== "string" || selected.length === 0) {
+        throw new InvalidPromptError("__generator", "Generator selection returned an invalid value.");
+      }
+
+      return selected;
+    } catch (error) {
+      // @inquirer/prompts throws ExitPromptError when user presses Ctrl+C.
+      if (error instanceof Error && this.isPromptCancelled(error)) {
+        throw new UserCancelledError();
+      }
+      throw error;
     }
-
-    return selected;
   }
 
   private async resolvePrompt(
@@ -289,7 +302,7 @@ export class PlopNextRunner {
       const normalized = raw.trim().toLowerCase();
       if (["1", "y", "yes", "t", "true"].includes(normalized)) return true;
       if (["0", "n", "no", "f", "false"].includes(normalized)) return false;
-      throw new Error(`Cannot bypass confirm prompt "${promptName}" with value "${raw}".`);
+      throw new BypassParseError(promptName, promptType, raw, `Expected boolean value (y/n), got "${raw}"`);
     }
 
     if (promptType === "number") {
@@ -297,7 +310,7 @@ export class PlopNextRunner {
       if (Number.isFinite(num)) {
         return num;
       }
-      throw new Error(`Cannot bypass number prompt "${promptName}" with value "${raw}".`);
+      throw new BypassParseError(promptName, promptType, raw, `Expected number, got "${raw}"`);
     }
 
     if (promptType === "list" || promptType === "select" || promptType === "rawlist" || promptType === "expand") {
@@ -325,8 +338,11 @@ export class PlopNextRunner {
   ): unknown {
     const choices = inquirerConfig["choices"];
     if (!Array.isArray(choices)) {
-      throw new Error(
-        `Cannot bypass ${promptType} prompt "${promptName}": resolved choices are missing or invalid.`,
+      throw new BypassParseError(
+        promptName,
+        promptType,
+        raw,
+        `Resolved choices are missing or invalid`,
       );
     }
 
@@ -370,7 +386,12 @@ export class PlopNextRunner {
       }
     }
 
-    throw new Error(`Cannot match bypass value "${raw}" for ${promptType} prompt "${promptName}".`);
+    throw new BypassParseError(
+      promptName,
+      promptType,
+      raw,
+      `Could not match value "${raw}" against available choices`,
+    );
   }
 
   private choiceValue(choice: unknown): unknown {

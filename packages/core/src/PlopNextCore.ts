@@ -765,7 +765,7 @@ export class PlopNextCore {
         ...(this.theme.spinner ?? {}),
         frames: Array.isArray(spinnerFrames)
           ? [...spinnerFrames]
-          : [...defaultTheme.spinner.frames],
+          : [...(defaultTheme.spinner?.frames ?? [])],
       },
       style: {
         ...defaultTheme.style,
@@ -775,12 +775,20 @@ export class PlopNextCore {
         ...defaultTheme.plopNext,
         ...(this.theme.plopNext ?? {}),
         generatorMenu: {
-          ...defaultTheme.plopNext.generatorMenu,
+          ...defaultTheme.plopNext?.generatorMenu,
           ...(this.theme.plopNext?.generatorMenu ?? {}),
         },
         actionLog: {
-          ...defaultTheme.plopNext.actionLog,
+          ...defaultTheme.plopNext?.actionLog,
           ...(this.theme.plopNext?.actionLog ?? {}),
+        },
+        errors: {
+          ...defaultTheme.plopNext?.errors,
+          ...(this.theme.plopNext?.errors ?? {}),
+          prefix: {
+            ...defaultTheme.plopNext?.errors?.prefix,
+            ...(this.theme.plopNext?.errors?.prefix ?? {}),
+          },
         },
       },
     };
@@ -815,6 +823,20 @@ export class PlopNextCore {
                 ? {
                     actionLog: {
                       ...theme.plopNext.actionLog,
+                    },
+                  }
+                : {}),
+              ...(theme.plopNext.errors
+                ? {
+                    errors: {
+                      ...theme.plopNext.errors,
+                      ...(theme.plopNext.errors.prefix
+                        ? {
+                            prefix: {
+                              ...theme.plopNext.errors.prefix,
+                            },
+                          }
+                        : {}),
                     },
                   }
                 : {}),

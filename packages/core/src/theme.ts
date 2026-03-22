@@ -13,43 +13,52 @@ export type DefaultTheme = {
   /**
    * Prefix shown before the prompt message.
    */
-  prefix: string | Prettify<Omit<Record<Status, string>, "loading">>;
+  prefix?: string | Prettify<Omit<Record<Status, string>, "loading">>;
 
   /**
    * Spinner shown while prompt status is "loading".
    */
-  spinner: {
-    interval: number;
-    frames: string[];
+  spinner?: {
+    interval?: number;
+    frames?: string[];
   };
 
   /**
    * Functions used to style prompt segments.
    */
-  style: {
-    answer: (text: string) => string;
-    message: (text: string, status: Status) => string;
-    error: (text: string) => string;
-    defaultAnswer: (text: string) => string;
-    help: (text: string) => string;
-    highlight: (text: string) => string;
-    key: (text: string) => string;
+  style?: {
+    answer?: (text: string) => string;
+    message?: (text: string, status: Status) => string;
+    error?: (text: string) => string;
+    defaultAnswer?: (text: string) => string;
+    help?: (text: string) => string;
+    highlight?: (text: string) => string;
+    key?: (text: string) => string;
   };
 
   /**
    * plop-next specific CLI style helpers.
    */
-  plopNext: {
-    welcome: (text: string) => string;
-    generatorMenu: {
-      title: (text: string) => string;
-      description: (text: string) => string;
+  plopNext?: {
+    welcome?: (text: string) => string;
+    generatorMenu?: {
+      title?: (text: string) => string;
+      description?: (text: string) => string;
     };
-    actionLog: {
-      success: (text: string) => string;
-      error: (text: string) => string;
-      skipped: (text: string) => string;
-      info: (text: string) => string;
+    actionLog?: {
+      success?: (text: string) => string;
+      error?: (text: string) => string;
+      warning?: (text: string) => string;
+      skipped?: (text: string) => string;
+      info?: (text: string) => string;
+    };
+    errors?: {
+      prefix?: {
+        error?: string;
+        warning?: string;
+      };
+      error?: (text: string) => string;
+      warning?: (text: string) => string;
     };
   };
 };
@@ -83,8 +92,17 @@ export const defaultTheme: DefaultTheme = {
     actionLog: {
       success: (text: string) => styleText("green", text),
       error: (text: string) => styleText("red", text),
+      warning: (text: string) => styleText("yellow", text),
       skipped: (text: string) => styleText("yellow", text),
       info: (text: string) => styleText("dim", text),
+    },
+    errors: {
+      prefix: {
+        error: "✖",
+        warning: "⚠",
+      },
+      error: (text: string) => styleText("red", text),
+      warning: (text: string) => styleText("yellow", text),
     },
   },
 };
