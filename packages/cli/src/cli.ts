@@ -6,11 +6,12 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import pc from "picocolors";
 import { PlopNextCLI } from "./PlopNextCLI";
+import { CORE_DEFAULT_HELP_TEXTS } from "@plop-next/core";
+import type { HelpTexts } from "@plop-next/core";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string; name: string };
 
-type HelpLocale = "en" | "fr";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 type InitTemplateOptions = {
@@ -44,69 +45,24 @@ const PARSE_OPTIONS = {
   version: { type: "boolean", short: "v" },
 } as const;
 
-const HELP_LOCALES: Record<HelpLocale, Record<string, string>> = {
-  en: {
-    usage: "Usage:",
-    usage1: "Select from a list of available generators",
-    usage2: "Run a generator registered under that name",
-    usage3: "Run the generator with input data to bypass prompts",
-    options: "Options:",
-    optHelp: "Show this help display",
-    optShowTypeNames: "Show type names instead of abbreviations",
-    optInit: "Generate a basic plopfile.ts",
-    optInitJs: "Generate a basic plopfile.js",
-    optInitTs: "Generate a basic plopfile.ts",
-    optDemo: "Generate a demo generator in the plopfile",
-    optI18n: "Initialize plopfile with i18n support",
-    optVersion: "Print current version",
-    optForce: "Run the generator forcefully",
-    optLang: "Force help locale (en|fr)",
-    danger: "danger waits for those who venture below the line",
-    lowPlopfile: "Path to the plopfile",
-    lowCwd:
-      "Directory from which relative paths are calculated while locating the plopfile",
-    lowPreload:
-      "String or array of modules to require before running plop-next",
-    lowDest:
-      "Output to this directory instead of the plopfile parent directory",
-    lowNoProgress: "Disable the progress spinner",
-    lowCompletion: "Output shell completion script (bash|zsh|fish)",
-    examples: "Examples:",
-  },
-  fr: {
-    usage: "Utilisation :",
-    usage1: "Choisir dans la liste des générateurs disponibles",
-    usage2: "Executer un générateur enregistre sous ce nom",
-    usage3:
-      "Executer le générateur avec des donnees d'entree pour passer les prompts",
-    options: "Options :",
-    optHelp: "Afficher cette aide",
-    optShowTypeNames: "Afficher les noms de type au lieu des abréviations",
-    optInit: "Générer un plopfile.ts de base",
-    optInitJs: "Générer un plopfile.js de base",
-    optInitTs: "Générer un plopfile.ts de base",
-    optDemo: "Générer un générateur de demo dans le plopfile",
-    optI18n: "Initialiser le plopfile avec le support i18n",
-    optVersion: "Afficher la version courante",
-    optForce: "Executer le générateur en mode force",
-    optLang: "Forcer la langue de l'aide (en|fr)",
-    danger: "le danger attend ceux qui s'aventurent sous la ligne",
-    lowPlopfile: "Chemin vers le plopfile",
-    lowCwd:
-      "Repertoire de base pour calculer les chemins relatifs pendant la recherche du plopfile",
-    lowPreload: "Chaine ou tableau de modules a charger avant plop-next",
-    lowDest:
-      "Écrire la sortie dans ce dossier au lieu du dossier parent du plopfile",
-    lowNoProgress: "Désactiver le spinner de progression",
-    lowCompletion: "Afficher le script de completion shell (bash|zsh|fish)",
-    examples: "Exemples :",
-  },
-};
-
-function resolveHelpLocale(raw: unknown): HelpLocale {
-  if (typeof raw !== "string" || raw.length === 0) return "en";
-  const normalized = raw.toLowerCase().split(/[-_]/)[0];
-  return normalized === "fr" ? "fr" : "en";
+/**
+ * Resolves the help texts for `--help` display.
+ * Tries to load the matching locale from `@plop-next/i18n` (optional dep),
+ * and falls back to the built-in English texts if i18n is unavailable or the
+ * locale has no help section.
+ */
+async function resolveHelpTexts(lang?: string): Promise<HelpTexts> {
+  if (!lang) return CORE_DEFAULT_HELP_TEXTS;
+  const locale = lang.trim().toLowerCase();
+  if (!locale || locale === "en") return CORE_DEFAULT_HELP_TEXTS;
+  try {
+    const { I18nRegistry } = await import("@plop-next/i18n");
+    const registry = new I18nRegistry();
+    return registry.getHelpTexts(locale);
+  } catch {
+    // @plop-next/i18n not installed — use English default.
+    return CORE_DEFAULT_HELP_TEXTS;
+  }
 }
 
 function detectPackageManager(projectDir: string): PackageManager {
@@ -269,12 +225,12 @@ function parseNamedBypass(tokens: string[]): Record<string, string | boolean> {
   return named;
 }
 
-function parseBypassArgs(rawArgs: string[]): BypassParseResult {
+function parseBypassArgs(rawArgs: string[], fallbackPositionals: string[]): BypassParseResult {
   const separatorIndex = rawArgs.indexOf("--");
 
   if (separatorIndex === -1) {
     return {
-      positional: positionals.slice(1).map(String),
+      positional: fallbackPositionals.slice(1).map(String),
       named: {},
     };
   }
@@ -292,6 +248,7 @@ function parseBypassArgs(rawArgs: string[]): BypassParseResult {
   };
 }
 
+(async () => {
 const rawArgs = process.argv.slice(2);
 
 const { values, positionals } = parseArgs({
@@ -301,7 +258,7 @@ const { values, positionals } = parseArgs({
   strict: false,
 });
 
-const bypass = parseBypassArgs(rawArgs);
+const bypass = parseBypassArgs(rawArgs, positionals);
 
 // ── --version ────────────────────────────────────────────────────────────────
 if (values.version) {
@@ -311,8 +268,8 @@ if (values.version) {
 
 // ── --help ───────────────────────────────────────────────────────────────────
 if (values.help) {
-  const locale = resolveHelpLocale(values.lang);
-  const t = HELP_LOCALES[locale];
+  // eslint-disable-next-line no-await-in-loop
+  const t = await resolveHelpTexts(values.lang as string | undefined);
 
   console.log(
     [
@@ -418,7 +375,12 @@ cli.launch({
   progress: values.progress as boolean,
   dest: values.dest as string | undefined,
   force: values.force as boolean | undefined,
+  lang: values.lang as string | undefined,
   showTypeNames: values["show-type-names"] as boolean | undefined,
   bypassPositionals: bypass.positional,
   bypassNamed: bypass.named,
+});
+})().catch((err: unknown) => {
+  console.error(pc.red(String(err)));
+  process.exit(1);
 });

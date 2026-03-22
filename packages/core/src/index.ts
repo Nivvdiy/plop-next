@@ -3,7 +3,7 @@ export { ActionRunner } from "./ActionRunner";
 export { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 export { registerBuiltInPromptHandlers } from "./prompts/registerBuiltins";
 export { defaultTheme } from "./theme";
-export { CORE_DEFAULT_TEXTS, CORE_DEFAULT_TEXTS_EN } from "./defaultTexts";
+export { CORE_DEFAULT_TEXTS, CORE_DEFAULT_TEXTS_EN, CORE_DEFAULT_HELP_TEXTS } from "./defaultTexts";
 export {
   askCustomPrompt,
   getCustomPrompt,
@@ -45,6 +45,7 @@ export type {
   PlopNextEnv,
   LocaleTexts,
   LocaleTag,
+  HelpTexts,
   InquirerStyleObject,
   PlopNextTheme,
 } from "./types";
@@ -53,6 +54,7 @@ export type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
 export type { SeparatorLike } from "./prompts/Separator";
 export type {
   ErrorVerbosity,
+  ErrorTranslator,
   ErrorHandlerOptions,
   ErrorHandleResult,
 } from "./errors/ErrorHandler";

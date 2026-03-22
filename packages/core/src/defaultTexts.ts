@@ -1,4 +1,4 @@
-import type { LocaleTexts } from "./types";
+import type { HelpTexts, LocaleTexts } from "./types";
 
 /**
  * Core-owned default UI texts used by plop-next.
@@ -82,6 +82,39 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
     plopfileNotFoundWarning:
       "No plopfile found. Create a plopfile.js in your project.",
   },
+
+  /**
+   * CLI `--help` display texts.
+   * These are read-only and cannot be overridden via `registerLocale` / `registerTexts`.
+   */
+  help: {
+    usage: "Usage:",
+    usage1: "Select from a list of available generators",
+    usage2: "Run a generator registered under that name",
+    usage3: "Run the generator with input data to bypass prompts",
+    options: "Options:",
+    optHelp: "Show this help display",
+    optShowTypeNames: "Show type names instead of abbreviations",
+    optInit: "Generate a basic plopfile.ts",
+    optInitJs: "Generate a basic plopfile.js",
+    optInitTs: "Generate a basic plopfile.ts",
+    optDemo: "Generate a demo generator in the plopfile",
+    optI18n: "Initialize plopfile with i18n support",
+    optVersion: "Print current version",
+    optForce: "Run the generator forcefully",
+    optLang: "Force display locale (e.g. en, fr)",
+    danger: "danger waits for those who venture below the line",
+    lowPlopfile: "Path to the plopfile",
+    lowCwd:
+      "Directory from which relative paths are calculated while locating the plopfile",
+    lowPreload:
+      "String or array of modules to require before running plop-next",
+    lowDest:
+      "Output to this directory instead of the plopfile parent directory",
+    lowNoProgress: "Disable the progress spinner",
+    lowCompletion: "Output shell completion script (bash|zsh|fish)",
+    examples: "Examples:",
+  } satisfies HelpTexts,
 } as const;
 
 /**
@@ -89,3 +122,10 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
  * Prefer `CORE_DEFAULT_TEXTS`.
  */
 export const CORE_DEFAULT_TEXTS_EN: LocaleTexts = CORE_DEFAULT_TEXTS;
+
+/**
+ * Typed accessor for the built-in English help texts.
+ * Use this in the CLI to render `--help` output.
+ */
+export const CORE_DEFAULT_HELP_TEXTS: HelpTexts =
+  CORE_DEFAULT_TEXTS.help as HelpTexts;

@@ -1,3 +1,5 @@
+import { CORE_DEFAULT_TEXTS } from "../defaultTexts";
+
 /**
  * Configuration for error behavior and reporting.
  */
@@ -14,82 +16,24 @@ export interface ErrorConfig {
   allowLogFile: boolean;
 }
 
-type ErrorLocale = "en" | "fr";
-
-function detectErrorLocale(): ErrorLocale {
-  const env =
-    process.env["PLOP_NEXT_LOCALE"] ??
-    process.env["LC_ALL"] ??
-    process.env["LC_MESSAGES"] ??
-    process.env["LANGUAGE"] ??
-    process.env["LANG"] ??
-    "en";
-
-  return env.toLowerCase().startsWith("fr") ? "fr" : "en";
+export interface ErrorTranslation {
+  key: string;
+  args?: unknown[];
+  fallback: string;
 }
 
-type ErrorMessageKey =
-  | "generatorNotFound"
-  | "noGenerators"
-  | "invalidPrompt"
-  | "bypassParse"
-  | "plopfileLoad"
-  | "plopfileExport"
-  | "userCancelled"
-  | "plopfileNotFound";
+function resolveDefaultErrorText(key: string, args: unknown[] = []): string {
+  const value = (CORE_DEFAULT_TEXTS.errors as Record<string, unknown>)[key];
 
-type ErrorMessageParams = {
-  generatorName?: string;
-  promptName?: string;
-  reason?: string;
-  promptType?: string;
-  value?: string;
-  detail?: string;
-  filePath?: string;
-};
-
-function errorMessage(key: ErrorMessageKey, params: ErrorMessageParams = {}): string {
-  const locale = detectErrorLocale();
-
-  if (locale === "fr") {
-    switch (key) {
-      case "generatorNotFound":
-        return `Generateur "${params.generatorName ?? ""}" introuvable.`;
-      case "noGenerators":
-        return "Aucun generateur enregistre. Ajoutez-en dans votre plopfile.";
-      case "invalidPrompt":
-        return `Prompt invalide "${params.promptName ?? ""}" : ${params.reason ?? ""}`;
-      case "bypassParse":
-        return `Impossible d'assigner la valeur de bypass "${params.value ?? ""}" au prompt ${params.promptType ?? ""} "${params.promptName ?? ""}"${params.detail ?? ""}`;
-      case "plopfileLoad":
-        return `Echec du chargement du plopfile : ${params.filePath ?? ""}`;
-      case "plopfileExport":
-        return params.reason || "Le plopfile doit exporter une fonction par defaut.";
-      case "userCancelled":
-        return "Prompt annule par l'utilisateur.";
-      case "plopfileNotFound":
-        return params.reason || "Aucun plopfile trouve. Creez un plopfile.js dans votre projet.";
-    }
+  if (typeof value === "function") {
+    return String((value as (...params: unknown[]) => unknown)(...args));
   }
 
-  switch (key) {
-    case "generatorNotFound":
-      return `Generator "${params.generatorName ?? ""}" not found.`;
-    case "noGenerators":
-      return "No generators registered. Add some to your plopfile.";
-    case "invalidPrompt":
-      return `Invalid prompt "${params.promptName ?? ""}": ${params.reason ?? ""}`;
-    case "bypassParse":
-      return `Cannot assign bypass value "${params.value ?? ""}" to ${params.promptType ?? ""} prompt "${params.promptName ?? ""}"${params.detail ?? ""}`;
-    case "plopfileLoad":
-      return `Failed to load plopfile: ${params.filePath ?? ""}`;
-    case "plopfileExport":
-      return params.reason || "Plopfile must export a default function.";
-    case "userCancelled":
-      return "Prompt cancelled by user.";
-    case "plopfileNotFound":
-      return params.reason || "No plopfile found. Create a plopfile.js in your project.";
+  if (typeof value === "string") {
+    return value;
   }
+
+  return key;
 }
 
 /**
@@ -100,11 +44,18 @@ export class PlopError extends Error {
   readonly code: string;
   readonly isOperational: boolean = true;
   readonly config: ErrorConfig;
+  readonly translation?: ErrorTranslation;
 
-  constructor(code: string, message: string, config: ErrorConfig) {
+  constructor(
+    code: string,
+    message: string,
+    config: ErrorConfig,
+    translation?: ErrorTranslation,
+  ) {
     super(message);
     this.code = code;
     this.config = config;
+    this.translation = translation;
     this.name = this.constructor.name;
 
     // Maintain proper prototype chain for instanceof checks
@@ -117,16 +68,19 @@ export class PlopError extends Error {
  */
 export class GeneratorNotFoundError extends PlopError {
   constructor(generatorName: string) {
+    const args = [generatorName];
+    const fallback = resolveDefaultErrorText("generatorNotFound", args);
     super(
       "GENERATOR_NOT_FOUND",
-      errorMessage("generatorNotFound", { generatorName }),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: true,
-      }
+      },
+      { key: "errors.generatorNotFound", args, fallback },
     );
     Object.setPrototypeOf(this, GeneratorNotFoundError.prototype);
   }
@@ -137,16 +91,18 @@ export class GeneratorNotFoundError extends PlopError {
  */
 export class NoGeneratorsError extends PlopError {
   constructor() {
+    const fallback = resolveDefaultErrorText("noGenerators");
     super(
       "NO_GENERATORS",
-      errorMessage("noGenerators"),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: true,
-      }
+      },
+      { key: "errors.noGenerators", fallback },
     );
     Object.setPrototypeOf(this, NoGeneratorsError.prototype);
   }
@@ -157,16 +113,19 @@ export class NoGeneratorsError extends PlopError {
  */
 export class InvalidPromptError extends PlopError {
   constructor(promptName: string, reason: string) {
+    const args = [promptName, reason];
+    const fallback = resolveDefaultErrorText("invalidPrompt", args);
     super(
       "INVALID_PROMPT",
-      errorMessage("invalidPrompt", { promptName, reason }),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: true,
-      }
+      },
+      { key: "errors.invalidPrompt", args, fallback },
     );
     Object.setPrototypeOf(this, InvalidPromptError.prototype);
   }
@@ -177,17 +136,19 @@ export class InvalidPromptError extends PlopError {
  */
 export class BypassParseError extends PlopError {
   constructor(promptName: string, promptType: string, value: string, reason?: string) {
-    const detail = reason ? `: ${reason}` : "";
+    const args = [promptName, promptType, value, reason];
+    const fallback = resolveDefaultErrorText("bypassParse", args);
     super(
       "BYPASS_PARSE_ERROR",
-      errorMessage("bypassParse", { promptName, promptType, value, detail }),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: true,
-      }
+      },
+      { key: "errors.bypassParse", args, fallback },
     );
     Object.setPrototypeOf(this, BypassParseError.prototype);
   }
@@ -201,16 +162,19 @@ export class PlopfileLoadError extends PlopError {
   readonly importError?: Error;
 
   constructor(filePath: string, requireError?: Error, importError?: Error) {
+    const args = [filePath];
+    const fallback = resolveDefaultErrorText("plopfileLoad", args);
     super(
       "PLOPFILE_LOAD_ERROR",
-      errorMessage("plopfileLoad", { filePath }),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: true,
         allowLogFile: true,
-      }
+      },
+      { key: "errors.plopfileLoad", args, fallback },
     );
     this.requireError = requireError;
     this.importError = importError;
@@ -223,16 +187,18 @@ export class PlopfileLoadError extends PlopError {
  */
 export class PlopfileExportError extends PlopError {
   constructor(message?: string) {
+    const fallback = message ?? resolveDefaultErrorText("plopfileExport");
     super(
       "PLOPFILE_EXPORT_ERROR",
-      errorMessage("plopfileExport", { reason: message }),
+      fallback,
       {
         isWarning: false,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: true,
-      }
+      },
+      message ? undefined : { key: "errors.plopfileExport", fallback },
     );
     Object.setPrototypeOf(this, PlopfileExportError.prototype);
   }
@@ -244,16 +210,18 @@ export class PlopfileExportError extends PlopError {
  */
 export class UserCancelledError extends PlopError {
   constructor() {
+    const fallback = resolveDefaultErrorText("userCancelled");
     super(
       "USER_CANCELLED",
-      errorMessage("userCancelled"),
+      fallback,
       {
         isWarning: true,
         shouldExit: true,
         exitCode: 0,
         showStackTrace: false,
         allowLogFile: false,
-      }
+      },
+      { key: "errors.userCancelled", fallback },
     );
     Object.setPrototypeOf(this, UserCancelledError.prototype);
   }
@@ -264,16 +232,18 @@ export class UserCancelledError extends PlopError {
  */
 export class PlopfileNotFoundWarning extends PlopError {
   constructor(message?: string) {
+    const fallback = message ?? resolveDefaultErrorText("plopfileNotFoundWarning");
     super(
       "PLOPFILE_NOT_FOUND",
-      errorMessage("plopfileNotFound", { reason: message }),
+      fallback,
       {
         isWarning: true,
         shouldExit: true,
         exitCode: 1,
         showStackTrace: false,
         allowLogFile: false,
-      }
+      },
+      message ? undefined : { key: "errors.plopfileNotFoundWarning", fallback },
     );
     Object.setPrototypeOf(this, PlopfileNotFoundWarning.prototype);
   }

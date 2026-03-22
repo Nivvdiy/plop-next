@@ -5,6 +5,12 @@ import type { PlopError } from "./PlopError";
 import type { PlopNextTheme } from "../types";
 import { defaultTheme } from "../theme";
 
+export type ErrorTranslator = (
+  key: string,
+  args?: unknown[],
+  fallback?: string,
+) => string;
+
 export type ErrorVerbosity = "simple" | "verbose" | "debug";
 
 export interface ErrorHandlerOptions {
@@ -59,6 +65,7 @@ export class ErrorHandler {
     defaultTheme.plopNext?.errors?.error ?? ((text: string) => pc.red(text));
   private warningStyle: (text: string) => string =
     defaultTheme.plopNext?.errors?.warning ?? ((text: string) => pc.yellow(text));
+  private translator?: ErrorTranslator;
 
   constructor(options?: ErrorHandlerOptions) {
     if (options?.verbosity) this.verbosity = options.verbosity;
@@ -118,12 +125,12 @@ export class ErrorHandler {
   }
 
   private formatSimple(error: PlopError): string {
-    return error.message;
+    return this.resolveMessage(error);
   }
 
   private formatVerbose(error: PlopError): string {
     const parts: string[] = [];
-    parts.push(`[${error.code}] ${error.message}`);
+    parts.push(`[${error.code}] ${this.resolveMessage(error)}`);
 
     // Only show stack trace if the error config allows it and verbosity is verbose/debug
     if (error.config.showStackTrace && error instanceof Error && error.stack) {
@@ -140,7 +147,7 @@ export class ErrorHandler {
   private formatDebug(error: PlopError): string {
     const parts: string[] = [];
     parts.push(`Error Code: ${error.code}`);
-    parts.push(`Message: ${error.message}`);
+    parts.push(`Message: ${this.resolveMessage(error)}`);
     parts.push(`Type: ${error.name}`);
     parts.push(`Operational: ${error.isOperational}`);
 
@@ -185,6 +192,18 @@ export class ErrorHandler {
     }
 
     return message;
+  }
+
+  private resolveMessage(error: PlopError): string {
+    if (!error.translation) {
+      return error.message;
+    }
+
+    return this.translator?.(
+      error.translation.key,
+      error.translation.args,
+      error.translation.fallback,
+    ) ?? error.translation.fallback;
   }
 
   private logToConsole(output: string, isPlopError: boolean, isWarning: boolean): void {
@@ -237,6 +256,10 @@ export class ErrorHandler {
     }
 
     this.applyTheme(theme.plopNext.errors);
+  }
+
+  setTranslator(translator: ErrorTranslator | undefined): void {
+    this.translator = translator;
   }
 
   private applyTheme(theme: {

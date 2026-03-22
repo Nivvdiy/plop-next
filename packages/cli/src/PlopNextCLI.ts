@@ -35,6 +35,8 @@ export interface CLIOptions {
   bypassPositionals?: string[];
   /** Named bypass values passed after `--` (e.g. --name value). */
   bypassNamed?: Record<string, string | boolean>;
+  /** Preferred locale for fallback CLI errors when no plopfile locale is available. */
+  lang?: string;
   /** Error verbosity level (simple | verbose | debug). Default: simple. */
   errorVerbosity?: ErrorVerbosity;
   /** Optional file path to log errors to. */
@@ -87,6 +89,7 @@ export class PlopNextCLI {
     // Configure error handler
     if (options.errorVerbosity) this.errorHandler.setVerbosity(options.errorVerbosity);
     if (options.errorLogFile) this.errorHandler.setLogFile(options.errorLogFile);
+    await this.configureFallbackErrorLocalization(options.lang);
 
     try {
       if (!env.configPath) {
@@ -94,6 +97,7 @@ export class PlopNextCLI {
       }
 
       const core = new PlopNextCore();
+      this.errorHandler.setTranslator((key, args, fallback) => core.t(key, args, fallback));
       core.setPlopfilePath(env.configPath);
 
       let plopfileMod: unknown;
@@ -145,6 +149,38 @@ export class PlopNextCLI {
       }
       process.exitCode = result.exitCode;
     }
+  }
+
+  private async configureFallbackErrorLocalization(lang?: string): Promise<void> {
+    this.errorHandler.setTranslator(undefined);
+
+    const locale = this.normalizeLocale(lang);
+    if (!locale || locale === "en") {
+      return;
+    }
+
+    try {
+      const { I18nRegistry } = await import("@plop-next/i18n");
+      const registry = new I18nRegistry();
+
+      if (!registry.hasLocale(locale)) {
+        return;
+      }
+
+      registry.setActiveLocale(locale);
+      this.errorHandler.setTranslator((key, args, fallback) => registry.t(key, args, fallback));
+    } catch {
+      // Keep English defaults when the optional i18n package is unavailable.
+    }
+  }
+
+  private normalizeLocale(locale?: string): string | undefined {
+    if (!locale) {
+      return undefined;
+    }
+
+    const normalized = locale.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : undefined;
   }
 }
 

@@ -8,6 +8,12 @@ export type LocaleTexts = Record<string, unknown>;
 /** BCP-47 locale tag, e.g. "en", "fr", "es". */
 export type LocaleTag = string;
 
+/**
+ * Flat map of read-only help/usage strings for the CLI `--help` display.
+ * Keys match the entries declared in `CORE_DEFAULT_TEXTS.help`.
+ */
+export type HelpTexts = Readonly<Record<string, string>>;
+
 import type { Theme } from "./theme";
 
 // ─────────────────────────────────────────────

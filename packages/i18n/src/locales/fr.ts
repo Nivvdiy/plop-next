@@ -86,4 +86,37 @@ export const FR_MESSAGES: LocaleTexts = {
     plopfileNotFoundWarning:
       "Aucun plopfile trouve. Creez un plopfile.js dans votre projet.",
   },
+
+  /**
+   * CLI `--help` display texts — French.
+   * Read-only: cannot be overridden via `registerLocale` / `registerTexts`.
+   */
+  help: {
+    usage: "Utilisation :",
+    usage1: "Choisir dans la liste des générateurs disponibles",
+    usage2: "Executer un générateur enregistre sous ce nom",
+    usage3:
+      "Executer le générateur avec des donnees d'entree pour passer les prompts",
+    options: "Options :",
+    optHelp: "Afficher cette aide",
+    optShowTypeNames: "Afficher les noms de type au lieu des abréviations",
+    optInit: "Générer un plopfile.ts de base",
+    optInitJs: "Générer un plopfile.js de base",
+    optInitTs: "Générer un plopfile.ts de base",
+    optDemo: "Générer un générateur de demo dans le plopfile",
+    optI18n: "Initialiser le plopfile avec le support i18n",
+    optVersion: "Afficher la version courante",
+    optForce: "Executer le générateur en mode force",
+    optLang: "Forcer la locale d'affichage (ex. en, fr)",
+    danger: "le danger attend ceux qui s'aventurent sous la ligne",
+    lowPlopfile: "Chemin vers le plopfile",
+    lowCwd:
+      "Repertoire de base pour calculer les chemins relatifs pendant la recherche du plopfile",
+    lowPreload: "Chaine ou tableau de modules a charger avant plop-next",
+    lowDest:
+      "Écrire la sortie dans ce dossier au lieu du dossier parent du plopfile",
+    lowNoProgress: "Désactiver le spinner de progression",
+    lowCompletion: "Afficher le script de completion shell (bash|zsh|fish)",
+    examples: "Exemples :",
+  },
 } as const;
