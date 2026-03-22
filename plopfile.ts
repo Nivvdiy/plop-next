@@ -99,7 +99,7 @@ export default function plop(plop: PlopNext) {
 
   // ── Générateur "component" ──────────────────────────────────────────
 
-  plop.setGenerator("allTypesTest", {
+  /*plop.setGenerator("allTypesTest", {
     description: "Composant réutilisable (tsx + module.scss + index)",
     prompts: [
       {
@@ -296,5 +296,42 @@ export default function plop(plop: PlopNext) {
       console.log(`Hello, ${answers.name}!`);
       return [];
     },
-  });
+  });*/
+
+  // ── Séparateurs dans le menu des générateurs ──────────────────────
+  // addSeparator() insère une ligne entre les générateurs dans le select.
+  // Sans argument → ligne vide gérée par Inquirer par défaut.
+  // Avec argument → texte personnalisé affiché comme séparateur.
+  plop.addSeparator();
+ /* plop.setGenerator("utilsGenerator", {
+    description: "Génère un fichier utilitaire TypeScript",
+    prompts: [
+      {
+        type: "input",
+        name: "utilName",
+        message: "Nom de l'utilitaire ?",
+        default: "myUtil",
+      },
+    ],
+    actions: (answers) => {
+      console.log(`Generating utility: ${answers.utilName}`);
+      return [];
+    },
+  });*/
+
+  plop.addSeparator("── Avancé ──────────────────────────────────────");
+  /*plop.setGenerator("advancedGenerator", {
+    description: "Générateur avec configuration avancée",
+    prompts: [
+      {
+        type: "input",
+        name: "featureName",
+        message: "Nom de la feature ?",
+      },
+    ],
+    actions: (answers) => {
+      console.log(`Advanced feature: ${answers.featureName}`);
+      return [];
+    },
+  });*/
 }

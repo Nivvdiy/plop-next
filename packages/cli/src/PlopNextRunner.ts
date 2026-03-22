@@ -57,15 +57,19 @@ export class PlopNextRunner {
           process.exit(1);
         }
         chosen = generatorName;
-      } else if (list.length === 1 && list[0]) {
-        chosen = list[0].name;
       } else {
-        const welcomeMessage = this.core.getWelcomeMessage();
-        if (welcomeMessage) {
-          console.log(theme.welcome(welcomeMessage));
-        }
+        // Filter out separators to find actual generators
+        const generators = list.filter((item) => !("type" in item) || item.type !== "separator");
+        if (generators.length === 1 && generators[0] && "name" in generators[0]) {
+          chosen = generators[0].name;
+        } else {
+          const welcomeMessage = this.core.getWelcomeMessage();
+          if (welcomeMessage) {
+            console.log(theme.welcome(welcomeMessage));
+          }
 
-        chosen = await this.askGeneratorSelection(list);
+          chosen = await this.askGeneratorSelection(list);
+        }
       }
 
       await this.runGenerator(chosen);
@@ -188,10 +192,15 @@ export class PlopNextRunner {
   }
 
   private async askGeneratorSelection(
-    list: Array<{ name: string; description?: string }>,
+    list: Array<{ name: string; description?: string } | { type: "separator"; separator: string }>,
   ): Promise<string> {
     const choices = [
-      ...list.map((g) => {
+      ...list.map((item) => {
+        if ("type" in item && item.type === "separator") {
+          return new Separator(item.separator || undefined);
+        }
+
+        const g = item as { name: string; description?: string };
         const translatedDescription = this.core.t(
           `${g.name}.description`,
           [],

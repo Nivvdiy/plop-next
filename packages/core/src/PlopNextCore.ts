@@ -40,6 +40,7 @@ import {
 } from "./prompts/customPrompt";
 import { defaultTheme } from "./theme";
 import type { DefaultTheme, Theme } from "./theme";
+import type { SeparatorLike } from "./prompts/Separator";
 
 export interface UseI18nOptions {
   /** Force a specific locale tag, e.g. "fr". */
@@ -86,8 +87,11 @@ export interface I18nAdapter {
  * Central registry used by the CLI and optionally by the i18n plugin.
  * Should never be instantiated directly by end-users: the CLI boots it.
  */
+type GeneratorEntry = { kind: "generator"; name: string } | { kind: "separator"; text?: string };
+
 export class PlopNextCore {
   private readonly generators = new Map<string, GeneratorConfig>();
+  private readonly generatorEntries: GeneratorEntry[] = [];
   private readonly actionTypes = new Map<string, CustomActionFunction>();
   /** Legacy custom prompt renderers (registered via addPrompt / setPrompt). */
   private readonly promptTypes = new Map<string, PromptRenderer>();
@@ -116,7 +120,15 @@ export class PlopNextCore {
    * plopNext.registerGenerator("component", { prompts: [...], actions: [...] });
    */
   registerGenerator(name: string, config: GeneratorConfig): this {
+    if (!this.generators.has(name)) {
+      this.generatorEntries.push({ kind: "generator", name });
+    }
     this.generators.set(name, config);
+    return this;
+  }
+
+  addSeparator(text?: string): this {
+    this.generatorEntries.push({ kind: "separator", text });
     return this;
   }
 
@@ -354,11 +366,17 @@ export class PlopNextCore {
     return this.generators.get(name);
   }
 
-  getGeneratorList(): { name: string; description?: string }[] {
-    return Array.from(this.generators.entries()).map(([name, cfg]) => ({
-      name,
-      description: cfg.description,
-    }));
+  getGeneratorList(): ({ name: string; description?: string } | SeparatorLike)[] {
+    const result: ({ name: string; description?: string } | SeparatorLike)[] = [];
+    for (const entry of this.generatorEntries) {
+      if (entry.kind === "separator") {
+        result.push({ type: "separator" as const, separator: entry.text ?? "" });
+      } else {
+        const cfg = this.generators.get(entry.name);
+        if (cfg) result.push({ name: entry.name, description: cfg.description });
+      }
+    }
+    return result;
   }
 
   // ── i18n integration ─────────────────────────────────────────────
