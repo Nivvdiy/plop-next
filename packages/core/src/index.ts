@@ -54,6 +54,7 @@ export type {
   HelpTexts,
   InquirerStyleObject,
   PlopNextTheme,
+  TranslatableFieldRule,
 } from "./types";
 export type { Status, DefaultTheme, Theme } from "./theme";
 export type { PromptHandler, PromptHandlerConfig } from "./prompts/types";

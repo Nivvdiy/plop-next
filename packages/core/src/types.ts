@@ -17,6 +17,58 @@ export type LocaleTag = string;
  */
 export type HelpTexts = Readonly<Record<string, string>>;
 
+/**
+ * Rule that declares how a specific field inside a custom prompt type should be
+ * translated by the i18n system.
+ *
+ * @example
+ * // Translate a top-level field directly:
+ * { translateField: "helpHint" }
+ * // → key: `{gen}.{promptName}.helpHint`
+ *
+ * @example
+ * // Translate `title` in each `columns` item, identified by `value`:
+ * { path: "columns", translateField: "title", idField: "value" }
+ * // → key: `{gen}.{promptName}.columns.{item.value}`
+ *
+ * @example
+ * // Same with explicit array wildcard '#' (equivalent form):
+ * { path: "columns.#", translateField: "title", idField: "value" }
+ *
+ * @example
+ * // Deeply nested arrays (groups → items):
+ * { path: "groups.#.items.#", translateField: "label", idField: "id" }
+ * // → key: `{gen}.{promptName}.groups.{i}.items.{item.id}`
+ */
+export interface TranslatableFieldRule {
+  /**
+   * Dot-path to the container holding the field to translate.
+   * Use `#` to mark array-iteration points.
+   *
+   * - Omit entirely for direct top-level fields on the prompt object.
+   * - If provided without `#` **and** `idField` is set, an implicit `#` is
+   *   appended: the last segment resolves to an array keyed by `idField`.
+   * - Multiple `#` are supported for arbitrarily nested arrays; `idField`
+   *   always applies to the **last** `#`.
+   */
+  path?: string;
+
+  /**
+   * The field whose string value should be translated.
+   *
+   * This field is used to read/write the display value inside the prompt config,
+   * but it is NOT appended to the generated i18n key.
+   */
+  translateField: string;
+
+  /**
+   * Field used to build the i18n key for the **last** array in the path.
+   * When set, `String(item[idField])` replaces the numeric index in the key,
+   * making translations stable across item reordering.
+   */
+  idField?: string;
+}
+
 import type { Theme } from "./theme";
 
 // ─────────────────────────────────────────────

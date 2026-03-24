@@ -73,6 +73,14 @@ export default function plop(plop: PlopNext) {
 
   plop.registerPrompt("table-multiple", TableMultiple); // Enregistrer un prompt custom fourni par @bartheleway/inquirer-table-multiple
 
+  // Déclarer quels champs de ce type de prompt sont traduisibles.
+  // path: "columns.#" → index du tableau: columns.0, columns.1, ...
+  // path: "rows" + idField → collection identifiée: rows.{value}
+  plop.registerTranslatableField("table-multiple", [
+    { path: "columns.#", translateField: "title" },
+    { path: "rows", translateField: "title", idField: "value" },
+  ]);
+
   // 2. Enregistrer les textes i18n pour le générateur "component"
   i18n.registerTexts("fr", {
     welcomeMessage: "Bienvenue dans la démo de PlopNext ! Veuillez sélectionner un générateur pour commencer.",
@@ -84,6 +92,33 @@ export default function plop(plop: PlopNext) {
           empty: "Le nom ne peut pas être vide",
         },
         patternError: "Le nom doit contenir uniquement des lettres",
+      },
+      selectFeature: {
+        message: "Sélectionnez une fonctionnalité",
+        choices: {
+          ui: "Interface utilisateur",
+          forms: "Formulaires",
+          layout: "Mise en page",
+        },
+      },
+      selectComponent: {
+        message: "Sélectionnez un composant",
+      },
+    },
+    customGenerator: {
+      description: "Générateur avec un prompt custom (table-multiple)",
+      tableChoice: {
+        message: "Choisissez entre les options ?",
+        // Clés générées : customGenerator.tableChoice.columns.0 / columns.1
+        columns: {
+          0: "Oui ?",
+          1: "Non ?",
+        },
+        // Clés générées : customGenerator.tableChoice.rows.{value}
+        rows: {
+          "1": "Choix 1",
+          "2": "Choix 2",
+        },
       },
     },
   });
@@ -105,7 +140,8 @@ export default function plop(plop: PlopNext) {
   });
 
   // 4. Forcer le français pour la démo
-  plop.useI18n({ force: "fr" });
+  //plop.useI18n({ force: "fr" });
+  plop.useI18n({ auto: true }); // Activer la détection automatique de la langue du terminal
 
   // 5. Appliquer le thème custom
   plop.setTheme(customTheme);
@@ -300,7 +336,8 @@ export default function plop(plop: PlopNext) {
     prompts: [
       {
         type: "table-multiple",
-        name: "tableChoice",message: 'Choose between choices?',
+        name: "tableChoice",
+        message: 'Choose between choices?',
 	      columns: [
           {
             title: 'Yes?',

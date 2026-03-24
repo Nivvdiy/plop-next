@@ -3,6 +3,7 @@ import type {
   LocaleTexts,
   LocaleTag,
   PlopPrompt,
+  TranslatableFieldRule,
   UnknownRecord,
   UseI18nOptions,
 } from "@plop-next/core";
@@ -36,6 +37,7 @@ export interface RegisterLocaleOptions {
 export class PlopNextI18n {
   private readonly registry = new I18nRegistry();
   private enabled = false;
+  private readonly translatableRules = new Map<string, TranslatableFieldRule[]>();
 
   constructor(private readonly core: PlopNextCore) {
     this.install();
@@ -72,6 +74,10 @@ export class PlopNextI18n {
         this.registry.setActiveLocale(locale);
       },
       getLocale: () => this.registry.getActiveLocale(),
+      registerTranslatableField: (promptType, rules) => {
+        const existing = this.translatableRules.get(promptType) ?? [];
+        this.translatableRules.set(promptType, [...existing, ...rules]);
+      },
     };
 
     this.core.setI18nAdapter(adapter);
@@ -342,6 +348,12 @@ export class PlopNextI18n {
     return out;
   }
 
+  private normalize(value: string): string {
+    const [withoutEncoding = ''] = value.split('.');
+    const [lang = ''] = withoutEncoding.split(/[_-]/);
+    return lang.toLowerCase();
+  }
+
   private enable(options: UseI18nOptions = { auto: true }): void {
     this.enabled = true;
 
@@ -354,15 +366,30 @@ export class PlopNextI18n {
     }
   }
 
+  
   private detectLocale(): LocaleTag {
-    const env =
-      process.env["LANG"] ??
-      process.env["LANGUAGE"] ??
-      process.env["LC_ALL"] ??
-      process.env["LC_MESSAGES"] ??
-      "en";
 
-    return env.split(/[_.-]/)[0] ?? "en";
+    // 1. LANGUAGE (GNU/Linux colon-separated preference list)
+    for (const seg of (process.env["LANGUAGE"] ?? "").split(":")) {
+      const lang = this.normalize(seg);
+      if (lang) return lang;
+    }
+
+    // 2-4. LC_ALL, LC_MESSAGES, LANG
+    for (const key of ["LC_ALL", "LC_MESSAGES", "LANG"] as const) {
+      const lang = this.normalize(process.env[key] ?? "");
+      if (lang) return lang;
+    }
+
+    // 5. Intl API (cross-platform / primary Windows path)
+    try {
+      const lang = this.normalize(Intl.DateTimeFormat().resolvedOptions().locale);
+      if (lang) return lang;
+    } catch {
+      // ignore
+    }
+
+    return "en";
   }
 
   private preparePrompts(generatorName: string, prompts: PlopPrompt[]): PlopPrompt[] {
@@ -422,6 +449,12 @@ export class PlopNextI18n {
         if (translated !== undefined) {
           resolvedPromptRecord[field] = translated;
         }
+      }
+
+      // Apply custom translatable field rules registered for this prompt type.
+      const customRules = this.translatableRules.get(prompt.type) ?? [];
+      for (const rule of customRules) {
+        this.applyRule(resolvedPromptRecord, rule, `${generatorName}.${prompt.name}`);
       }
 
       return resolvedPrompt;
@@ -503,5 +536,127 @@ export class PlopNextI18n {
     }
 
     return choice.name;
+  }
+
+  // ── Custom translatable-field engine ────────────────────────────────
+
+  /**
+   * Apply one translation rule to the (shallow-copied) prompt record.
+   *
+   * The implementation is purely functional: nested arrays / objects are
+   * reconstructed copy-on-write, so the original prompt config is never
+   * mutated.
+   */
+  private applyRule(
+    promptRecord: Record<string, unknown>,
+    rule: TranslatableFieldRule,
+    keyBase: string,
+  ): void {
+    if (!rule.path) {
+      // Simple top-level field — the shallow copy already owns this key.
+      const fieldValue = promptRecord[rule.translateField];
+      if (typeof fieldValue === "string") {
+        const key = `${keyBase}.${rule.translateField}`;
+        const translated = this.registry.t(key, [], fieldValue);
+        if (translated !== fieldValue) {
+          promptRecord[rule.translateField] = translated;
+        }
+      }
+      return;
+    }
+
+    const hasWildcard = rule.path.includes("#");
+    // Normalise: "path" without '#' + idField  →  treat path as array container
+    const segments = !hasWildcard && rule.idField
+      ? [...rule.path.split("."), "#"]
+      : rule.path.split(".");
+
+    const firstSeg = segments[0];
+    if (!firstSeg) return;
+
+    const original = promptRecord[firstSeg];
+    const result = this.walkPath(original, segments, 1, `${keyBase}.${firstSeg}`, rule);
+    if (result !== original) {
+      promptRecord[firstSeg] = result;
+    }
+  }
+
+  /**
+   * Recursively walk `segments` starting at `idx`, navigating into `current`.
+   * Returns a *new* value when a translation changed something, or `current`
+   * unchanged when nothing was modified (enabling cheap reference equality
+   * checks at every level).
+   */
+  private walkPath(
+    current: unknown,
+    segments: string[],
+    idx: number,
+    keyPath: string,
+    rule: TranslatableFieldRule,
+  ): unknown {
+    if (idx >= segments.length) {
+      return this.translateFieldValue(current, keyPath, rule.translateField);
+    }
+
+    const segment = segments[idx];
+
+    if (segment === "#") {
+      if (!Array.isArray(current)) return current;
+
+      // idField applies only to the *last* '#' in the path.
+      const isLastHash = !segments.slice(idx + 1).includes("#");
+
+      let changed = false;
+      const newArr = current.map((item: unknown, index: number) => {
+        let keySegment: string;
+        if (isLastHash && rule.idField) {
+          const idVal =
+            item !== null && typeof item === "object" && !Array.isArray(item)
+              ? (item as Record<string, unknown>)[rule.idField]
+              : undefined;
+          keySegment = idVal != null ? String(idVal) : String(index);
+        } else {
+          keySegment = String(index);
+        }
+        const newItem = this.walkPath(
+          item,
+          segments,
+          idx + 1,
+          `${keyPath}.${keySegment}`,
+          rule,
+        );
+        if (newItem !== item) changed = true;
+        return newItem;
+      });
+
+      return changed ? newArr : current;
+    }
+
+    // Regular segment: navigate into a plain object property.
+    if (!current || typeof current !== "object" || Array.isArray(current)) return current;
+    const record = current as Record<string, unknown>;
+    const next = record[segment];
+    const newNext = this.walkPath(next, segments, idx + 1, `${keyPath}.${segment}`, rule);
+    if (newNext === next) return current;
+    return { ...record, [segment]: newNext };
+  }
+
+  /**
+   * Translate `fieldName` on `obj`. Returns a *new* object when the translation
+   * differs from the original value, or `obj` itself when nothing changed.
+   */
+  private translateFieldValue(
+    obj: unknown,
+    keyPath: string,
+    fieldName: string,
+  ): unknown {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return obj;
+    const record = obj as Record<string, unknown>;
+    const fieldValue = record[fieldName];
+    if (typeof fieldValue !== "string") return obj;
+
+    const translated = this.registry.t(keyPath, [], fieldValue);
+    if (translated === fieldValue) return obj;
+    return { ...record, [fieldName]: translated };
   }
 }

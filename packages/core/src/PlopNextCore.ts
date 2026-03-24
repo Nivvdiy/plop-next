@@ -31,6 +31,7 @@ import type {
   ActionStepResult,
   DefaultIncludeConfig,
   PlopNextTheme,
+  TranslatableFieldRule,
 } from "./types";
 import { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 import type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
@@ -83,6 +84,7 @@ export interface I18nAdapter {
   registerText?(locale: LocaleTag, path: string, text: unknown): void;
   setLocale?(locale: LocaleTag): void;
   getLocale?(): LocaleTag;
+  registerTranslatableField?(promptType: string, rules: TranslatableFieldRule[]): void;
 }
 
 /**
@@ -112,6 +114,7 @@ export class PlopNextCore {
   /** Typed prompt handlers registered via registerPrompt(handler). */
   private readonly promptHandlerRegistry = new PromptHandlerRegistry();
   private i18nAdapter?: I18nAdapter;
+  private readonly translatableFieldRules = new Map<string, TranslatableFieldRule[]>();
   private welcomeMessage: string | null = null;
   private plopfilePath?: string;
   private destBasePath: string = process.cwd();
@@ -521,6 +524,29 @@ export class PlopNextCore {
     }
 
     return this.i18nAdapter?.hasLocale?.(locale) ?? false;
+  }
+
+  /**
+   * Declare which fields of a custom prompt type are translatable.
+   *
+   * Each rule specifies a `translateField` (the string to translate) and an
+   * optional `path` / `idField` for locating items inside nested arrays.
+   * Multiple calls for the same `promptType` accumulate rules.
+   *
+   * @param promptType  The `type` string used in `registerPrompt()`, e.g. `"table-multiple"`.
+   * @param rules       One or more translation rules for this prompt type.
+   *
+   * @example
+   * plop.registerTranslatableField("table-multiple", [
+   *   { path: "columns", translateField: "title", idField: "value" },
+   *   { path: "rows.#",  translateField: "title", idField: "value" },
+   * ]);
+   */
+  registerTranslatableField(promptType: string, rules: TranslatableFieldRule[]): this {
+    const existing = this.translatableFieldRules.get(promptType) ?? [];
+    this.translatableFieldRules.set(promptType, [...existing, ...rules]);
+    this.i18nAdapter?.registerTranslatableField?.(promptType, rules);
+    return this;
   }
 
   async executeActions(
