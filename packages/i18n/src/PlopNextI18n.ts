@@ -7,9 +7,20 @@ import type {
   UnknownRecord,
   UseI18nOptions,
 } from "@plop-next/core";
+import {
+  createConfirmHandler,
+  createSelectHandler,
+  createCheckboxHandler,
+  createSearchHandler,
+  createEditorHandler,
+  createPasswordHandler,
+} from "@plop-next/core";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, isAbsolute, resolve } from "node:path";
 import type { PlopNextCore } from "@plop-next/core";
+import type { InquirerPromptFn } from "@plop-next/core";
+import { createLocalizedPrompts } from "@inquirer/i18n";
+import type { Locale as InquirerLocale } from "@inquirer/i18n";
 import { I18nRegistry } from "./I18nRegistry";
 
 type LocalesBundle = Record<string, LocaleTexts>;
@@ -364,6 +375,58 @@ export class PlopNextI18n {
     if (locale) {
       this.registry.setActiveLocale(locale);
     }
+
+    this.applyInquirerLocale();
+  }
+
+  private applyInquirerLocale(): void {
+    const locale = this.buildInquirerLocale();
+    const localized = createLocalizedPrompts(locale);
+    this.core.registerPrompt(createConfirmHandler(localized.confirm as unknown as InquirerPromptFn));
+    this.core.registerPrompt(createSelectHandler(localized.select as unknown as InquirerPromptFn));
+    this.core.registerPrompt(createCheckboxHandler(localized.checkbox as unknown as InquirerPromptFn));
+    this.core.registerPrompt(createSearchHandler(localized.search as unknown as InquirerPromptFn));
+    this.core.registerPrompt(createEditorHandler(localized.editor as unknown as InquirerPromptFn));
+    this.core.registerPrompt(createPasswordHandler(localized.password as unknown as InquirerPromptFn));
+  }
+
+  private buildInquirerLocale(): InquirerLocale {
+    const t = (key: string, fallback: string): string => {
+      const full = `inquirer.${key}`;
+      const val = this.registry.t(full);
+      return val === full ? fallback : val;
+    };
+
+    return {
+      confirm: {
+        yesLabel: t("confirm.yesLabel", "Yes"),
+        noLabel: t("confirm.noLabel", "No"),
+        hintYes: t("confirm.hintYes", "Y/n"),
+        hintNo: t("confirm.hintNo", "y/N"),
+      },
+      select: {
+        helpNavigate: t("select.helpNavigate", "navigate"),
+        helpSelect: t("select.helpSelect", "select"),
+      },
+      checkbox: {
+        helpNavigate: t("checkbox.helpNavigate", "navigate"),
+        helpSelect: t("checkbox.helpSelect", "select"),
+        helpSubmit: t("checkbox.helpSubmit", "submit"),
+        helpAll: t("checkbox.helpAll", "all"),
+        helpInvert: t("checkbox.helpInvert", "invert"),
+      },
+      search: {
+        helpNavigate: t("search.helpNavigate", "navigate"),
+        helpSelect: t("search.helpSelect", "select"),
+      },
+      editor: {
+        waitingMessage: (enterKey: string) =>
+          this.registry.t("inquirer.editor.waitingMessage", [enterKey], `Press ${enterKey} to launch your preferred editor.`),
+      },
+      password: {
+        maskedText: t("password.maskedText", "[input is masked]"),
+      },
+    };
   }
 
   

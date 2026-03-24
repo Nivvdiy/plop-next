@@ -7,7 +7,9 @@ import type {
 } from "./types";
 import type { SearchSourceFn } from "../types";
 
-export const searchPromptHandler: PromptHandler = {
+export function createSearchHandler(fn?: InquirerPromptFn): PromptHandler {
+  const searchFn = fn ?? (search as unknown as InquirerPromptFn);
+  return {
   types: ["search"],
 
   async ask(_type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -42,9 +44,7 @@ export const searchPromptHandler: PromptHandler = {
       throw new Error('Prompt type "search" expects "validate" to be a function.');
     }
 
-    const runSearch = search as unknown as InquirerPromptFn;
-
-    return runSearch({
+    return searchFn({
       message: String(message ?? ""),
       source: source as SearchSourceFn,
       ...(pageSize !== undefined && { pageSize }),
@@ -55,4 +55,7 @@ export const searchPromptHandler: PromptHandler = {
       ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
-};
+  };
+}
+
+export const searchPromptHandler = createSearchHandler();

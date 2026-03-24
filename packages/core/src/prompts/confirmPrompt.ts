@@ -6,7 +6,9 @@ import type {
   PromptThemeConfig,
 } from "./types";
 
-export const confirmPromptHandler: PromptHandler = {
+export function createConfirmHandler(fn?: InquirerPromptFn): PromptHandler {
+  const confirmFn = fn ?? (confirm as unknown as InquirerPromptFn);
+  return {
   types: ["confirm"],
 
   async ask(_type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -35,9 +37,7 @@ export const confirmPromptHandler: PromptHandler = {
       throw new Error('Prompt type "confirm" expects "transformer" to be a function.');
     }
 
-    const runConfirm = confirm as unknown as InquirerPromptFn;
-
-    return runConfirm({
+    return confirmFn({
       message: String(message ?? ""),
       ...(defaultValue !== undefined && { default: defaultValue }),
       ...(transformer !== undefined && {
@@ -46,4 +46,7 @@ export const confirmPromptHandler: PromptHandler = {
       ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
-};
+  };
+}
+
+export const confirmPromptHandler = createConfirmHandler();

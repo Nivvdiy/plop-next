@@ -7,7 +7,9 @@ import type {
   PromptThemeConfig,
 } from "./types";
 
-export const editorPromptHandler: PromptHandler = {
+export function createEditorHandler(fn?: InquirerPromptFn): PromptHandler {
+  const editorFn = fn ?? (editor as unknown as InquirerPromptFn);
+  return {
   types: ["editor"],
 
   async ask(_type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -51,9 +53,7 @@ export const editorPromptHandler: PromptHandler = {
       throw new Error('Prompt type "editor" expects "validate" to be a function.');
     }
 
-    const runEditor = editor as unknown as InquirerPromptFn;
-
-    return runEditor({
+    return editorFn({
       message: String(message ?? ""),
       ...(defaultValue !== undefined && { default: String(defaultValue) }),
       ...(validate !== undefined && {
@@ -65,4 +65,7 @@ export const editorPromptHandler: PromptHandler = {
       ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
-};
+  };
+}
+
+export const editorPromptHandler = createEditorHandler();

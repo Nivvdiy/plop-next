@@ -6,7 +6,9 @@ import type {
   PromptThemeConfig,
 } from "./types";
 
-export const selectPromptHandler: PromptHandler = {
+export function createSelectHandler(fn?: InquirerPromptFn): PromptHandler {
+  const selectFn = fn ?? (select as unknown as InquirerPromptFn);
+  return {
   types: ["list", "select"],
 
   async ask(type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -46,8 +48,7 @@ export const selectPromptHandler: PromptHandler = {
       throw new Error('Prompt type "select" expects "loop" to be a boolean.');
     }
 
-    const runSelect = select as unknown as InquirerPromptFn;
-    return runSelect({
+    return selectFn({
       message: String(message ?? ""),
       choices: choices as unknown[],
       ...(defaultValue !== undefined && { default: defaultValue }),
@@ -56,4 +57,7 @@ export const selectPromptHandler: PromptHandler = {
       ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
-};
+  };
+}
+
+export const selectPromptHandler = createSelectHandler();

@@ -7,7 +7,9 @@ import type {
   PromptThemeConfig,
 } from "./types";
 
-export const checkboxPromptHandler: PromptHandler = {
+export function createCheckboxHandler(fn?: InquirerPromptFn): PromptHandler {
+  const checkboxFn = fn ?? (checkbox as unknown as InquirerPromptFn);
+  return {
   types: ["checkbox"],
 
   async ask(_type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -32,9 +34,7 @@ export const checkboxPromptHandler: PromptHandler = {
       throw new Error('Prompt type "checkbox" does not support "default". Use choice.checked instead.');
     }
 
-    const runCheckbox = checkbox as unknown as InquirerPromptFn;
-
-    return runCheckbox({
+    return checkboxFn({
       message: String(message ?? ""),
       choices: choices as unknown[],
       ...(pageSize !== undefined && { pageSize: Number(pageSize) }),
@@ -50,4 +50,7 @@ export const checkboxPromptHandler: PromptHandler = {
       ...rest,
     });
   },
-};
+  };
+}
+
+export const checkboxPromptHandler = createCheckboxHandler();

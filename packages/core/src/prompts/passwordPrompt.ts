@@ -6,7 +6,9 @@ import type {
   PromptThemeConfig,
 } from "./types";
 
-export const passwordPromptHandler: PromptHandler = {
+export function createPasswordHandler(fn?: InquirerPromptFn): PromptHandler {
+  const passwordFn = fn ?? (password as unknown as InquirerPromptFn);
+  return {
   types: ["password"],
 
   async ask(_type: string, config: PromptHandlerConfig): Promise<unknown> {
@@ -35,9 +37,7 @@ export const passwordPromptHandler: PromptHandler = {
       throw new Error('Prompt type "password" expects "validate" to be a function.');
     }
 
-    const runPassword = password as unknown as InquirerPromptFn;
-
-    return runPassword({
+    return passwordFn({
       message: String(message ?? ""),
       ...(validate !== undefined && {
         validate: validate as (value: string) => boolean | string | Promise<boolean | string>,
@@ -46,4 +46,7 @@ export const passwordPromptHandler: PromptHandler = {
       ...(theme !== undefined && { theme: theme as PromptThemeConfig }),
     });
   },
-};
+  };
+}
+
+export const passwordPromptHandler = createPasswordHandler();

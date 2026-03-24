@@ -57,7 +57,13 @@ export type {
   TranslatableFieldRule,
 } from "./types";
 export type { Status, DefaultTheme, Theme } from "./theme";
-export type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
+export type { PromptHandler, PromptHandlerConfig, InquirerPromptFn } from "./prompts/types";
+export { createSelectHandler } from "./prompts/selectPrompt";
+export { createConfirmHandler } from "./prompts/confirmPrompt";
+export { createCheckboxHandler } from "./prompts/checkboxPrompt";
+export { createSearchHandler } from "./prompts/searchPrompt";
+export { createEditorHandler } from "./prompts/editorPrompt";
+export { createPasswordHandler } from "./prompts/passwordPrompt";
 export type { SeparatorLike } from "./prompts/Separator";
 export type {
   ErrorVerbosity,
