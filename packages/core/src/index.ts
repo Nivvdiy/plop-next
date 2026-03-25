@@ -2,6 +2,7 @@ export { PlopNextCore } from "./PlopNextCore";
 export { ActionRunner } from "./ActionRunner";
 export { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 export { registerBuiltInPromptHandlers } from "./prompts/registerBuiltins";
+export { createPromptThemeSelector } from "./prompts/themeSelector";
 export { defaultTheme } from "./theme";
 export { CORE_DEFAULT_TEXTS, CORE_DEFAULT_TEXTS_EN, CORE_DEFAULT_HELP_TEXTS } from "./defaultTexts";
 export {
@@ -27,6 +28,7 @@ export {
 export type { ActionRunnerOptions, ActionRunResult } from "./ActionRunner";
 export type {
   I18nAdapter,
+  RegisterPromptOptions,
   RegisterLocaleOptions,
   UseI18nOptions,
 } from "./PlopNextCore";
@@ -58,6 +60,7 @@ export type {
 } from "./types";
 export type { Status, DefaultTheme, Theme } from "./theme";
 export type { PromptHandler, PromptHandlerConfig, InquirerPromptFn } from "./prompts/types";
+export type { PromptThemeSelectorOptions, PromptThemeSelector, PromptThemeFieldSpec } from "./prompts/themeSelector";
 export { createSelectHandler } from "./prompts/selectPrompt";
 export { createConfirmHandler } from "./prompts/confirmPrompt";
 export { createCheckboxHandler } from "./prompts/checkboxPrompt";

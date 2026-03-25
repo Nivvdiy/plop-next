@@ -85,7 +85,7 @@ export class PlopNextI18n {
         this.registry.setActiveLocale(locale);
       },
       getLocale: () => this.registry.getActiveLocale(),
-      registerTranslatableField: (promptType, rules) => {
+      registerTranslatableFields: (promptType, rules) => {
         const existing = this.translatableRules.get(promptType) ?? [];
         this.translatableRules.set(promptType, [...existing, ...rules]);
       },

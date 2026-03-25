@@ -37,6 +37,11 @@ import { PromptHandlerRegistry } from "./prompts/PromptHandlerRegistry";
 import type { PromptHandler, PromptHandlerConfig } from "./prompts/types";
 import { registerBuiltInPromptHandlers } from "./prompts/registerBuiltins";
 import {
+  createPromptThemeSelector,
+  PromptThemeSelectorRegistry,
+  type PromptThemeSelector,
+} from "./prompts/themeSelector";
+import {
   askCustomPrompt,
   getCustomPrompt,
   listCustomPromptTypes,
@@ -84,7 +89,7 @@ export interface I18nAdapter {
   registerText?(locale: LocaleTag, path: string, text: unknown): void;
   setLocale?(locale: LocaleTag): void;
   getLocale?(): LocaleTag;
-  registerTranslatableField?(promptType: string, rules: TranslatableFieldRule[]): void;
+  registerTranslatableFields?(promptType: string, rules: TranslatableFieldRule[]): void;
 }
 
 /**
@@ -105,6 +110,13 @@ interface GeneratorSeparatorEntry {
 
 type GeneratorEntry = GeneratorDefinitionEntry | GeneratorSeparatorEntry;
 
+export interface RegisterPromptOptions {
+  /** Theme selector/extraction config for this custom prompt type. */
+  theme?: PromptThemeSelector;
+  /** Translatable field rules for this custom prompt type. */
+  translatableFields?: TranslatableFieldRule[];
+}
+
 export class PlopNextCore {
   private readonly generators = new Map<string, GeneratorConfig>();
   private readonly generatorEntries: GeneratorEntry[] = [];
@@ -113,6 +125,7 @@ export class PlopNextCore {
   private readonly promptTypes = new Map<string, PromptRenderer>();
   /** Typed prompt handlers registered via registerPrompt(handler). */
   private readonly promptHandlerRegistry = new PromptHandlerRegistry();
+  private readonly promptThemeSelectorRegistry = new PromptThemeSelectorRegistry();
   private i18nAdapter?: I18nAdapter;
   private readonly translatableFieldRules = new Map<string, TranslatableFieldRule[]>();
   private welcomeMessage: string | null = null;
@@ -185,13 +198,37 @@ export class PlopNextCore {
   }
 
   registerPrompt(name: string, prompt: PromptRenderer): this;
+  registerPrompt(
+    name: string,
+    prompt: PromptRenderer,
+    options: RegisterPromptOptions,
+  ): this;
   registerPrompt(handler: PromptHandler): this;
   registerPrompt(
     nameOrHandler: string | PromptHandler,
     prompt?: PromptRenderer,
+    options?: RegisterPromptOptions,
   ): this {
     if (typeof nameOrHandler === "string") {
       registerCustomPrompt(this.promptTypes, nameOrHandler, prompt);
+
+      const themeOptions = options?.theme;
+      if (themeOptions && Object.keys(themeOptions).length > 0) {
+        this.promptThemeSelectorRegistry.registerWithDefault(
+          nameOrHandler,
+          createPromptThemeSelector(themeOptions),
+        );
+      } else {
+        this.promptThemeSelectorRegistry.registerWithDefault(nameOrHandler);
+      }
+
+      if (options?.translatableFields && options.translatableFields.length > 0) {
+        const existing = this.translatableFieldRules.get(nameOrHandler) ?? [];
+        const merged = [...existing, ...options.translatableFields];
+        this.translatableFieldRules.set(nameOrHandler, merged);
+        this.i18nAdapter?.registerTranslatableFields?.(nameOrHandler, options.translatableFields);
+      }
+
       return this;
     }
 
@@ -236,7 +273,7 @@ export class PlopNextCore {
       );
     }
 
-    const promptTheme = this.resolvePromptTheme();
+    const promptTheme = this.resolvePromptTheme(type);
     const configWithTheme =
       promptTheme === undefined
         ? config
@@ -526,29 +563,6 @@ export class PlopNextCore {
     return this.i18nAdapter?.hasLocale?.(locale) ?? false;
   }
 
-  /**
-   * Declare which fields of a custom prompt type are translatable.
-   *
-   * Each rule specifies a `translateField` (the string to translate) and an
-   * optional `path` / `idField` for locating items inside nested arrays.
-   * Multiple calls for the same `promptType` accumulate rules.
-   *
-   * @param promptType  The `type` string used in `registerPrompt()`, e.g. `"table-multiple"`.
-   * @param rules       One or more translation rules for this prompt type.
-   *
-   * @example
-   * plop.registerTranslatableField("table-multiple", [
-   *   { path: "columns", translateField: "title", idField: "value" },
-   *   { path: "rows.#",  translateField: "title", idField: "value" },
-   * ]);
-   */
-  registerTranslatableField(promptType: string, rules: TranslatableFieldRule[]): this {
-    const existing = this.translatableFieldRules.get(promptType) ?? [];
-    this.translatableFieldRules.set(promptType, [...existing, ...rules]);
-    this.i18nAdapter?.registerTranslatableField?.(promptType, rules);
-    return this;
-  }
-
   async executeActions(
     actions: Action[],
     answers: Record<string, unknown>,
@@ -794,19 +808,16 @@ export class PlopNextCore {
     return this.i18nAdapter?.preparePrompts(generatorName, prompts) ?? prompts;
   }
 
-  private resolvePromptTheme(): Pick<DefaultTheme, "prefix" | "spinner" | "style"> {
+  private resolvePromptTheme(type: string): UnknownRecord {
     const theme = this.resolveTheme();
-    return {
-      prefix: theme.prefix,
-      spinner: theme.spinner,
-      style: theme.style,
-    };
+    return this.promptThemeSelectorRegistry.resolveTheme(type, theme);
   }
 
   private resolveTheme(): Theme {
     const spinnerFrames = this.theme.spinner?.frames;
 
-    return {
+    const mergedTheme: Theme = {
+      icon: this.theme.icon ?? defaultTheme.icon,
       prefix: this.theme.prefix ?? defaultTheme.prefix,
       spinner: {
         ...defaultTheme.spinner,
@@ -819,6 +830,9 @@ export class PlopNextCore {
         ...defaultTheme.style,
         ...(this.theme.style ?? {}),
       },
+      validationFailureMode:
+        this.theme.validationFailureMode ?? defaultTheme.validationFailureMode,
+      indexMode: this.theme.indexMode ?? defaultTheme.indexMode,
       plopNext: {
         ...defaultTheme.plopNext,
         ...(this.theme.plopNext ?? {}),
@@ -840,11 +854,14 @@ export class PlopNextCore {
         },
       },
     };
+
+    return mergedTheme;
   }
 
   private cloneTheme(theme: PlopNextTheme): PlopNextTheme {
     return {
       ...(theme.prefix !== undefined ? { prefix: theme.prefix } : {}),
+      ...(theme.icon !== undefined ? { icon: theme.icon } : {}),
       ...(theme.spinner !== undefined
         ? {
             spinner: {
@@ -856,6 +873,10 @@ export class PlopNextCore {
           }
         : {}),
       ...(theme.style !== undefined ? { style: { ...theme.style } } : {}),
+      ...(theme.validationFailureMode !== undefined
+        ? { validationFailureMode: theme.validationFailureMode }
+        : {}),
+      ...(theme.indexMode !== undefined ? { indexMode: theme.indexMode } : {}),
       ...(theme.plopNext !== undefined
         ? {
             plopNext: {

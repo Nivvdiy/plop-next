@@ -71,15 +71,18 @@ export default function plop(plop: PlopNext) {
   // 1. Instancier le plugin i18n (les locales EN et FR sont pré-enregistrées)
   const i18n = new PlopNextI18n(plop);
 
-  plop.registerPrompt("table-multiple", TableMultiple); // Enregistrer un prompt custom fourni par @bartheleway/inquirer-table-multiple
-
-  // Déclarer quels champs de ce type de prompt sont traduisibles.
+  // Enregistrer un prompt custom avec options unifiées (theme + champs traduisibles).
   // path: "columns.#" → index du tableau: columns.0, columns.1, ...
   // path: "rows" + idField → collection identifiée: rows.{value}
-  plop.registerTranslatableField("table-multiple", [
-    { path: "columns.#", translateField: "title" },
-    { path: "rows", translateField: "title", idField: "value" },
-  ]);
+  plop.registerPrompt("table-multiple", TableMultiple, {
+    theme: {
+      selector: "select",
+    },
+    translatableFields: [
+      { path: "columns.#", translateField: "title" },
+      { path: "rows", translateField: "title", idField: "value" },
+    ],
+  });
 
   // 2. Enregistrer les textes i18n pour le générateur "component"
   i18n.registerTexts("fr", {
