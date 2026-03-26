@@ -116,6 +116,8 @@ export class PlopNextRunner {
         type,
         name: promptName,
         filter: filterFn,
+        validate: validateFn,
+        source: sourceFn,
         askAnswered,
         when: _when,
         // plop-next only fields, not passed to inquirer
@@ -133,14 +135,40 @@ export class PlopNextRunner {
         continue;
       }
 
+      const runtimeConfig: UnknownRecord = {
+        ...(inquirerConfig as UnknownRecord),
+      };
+
+      if (typeof validateFn === "function") {
+        runtimeConfig["validate"] = (value: unknown) =>
+          (validateFn as (value: unknown, answers?: Record<string, unknown>) => unknown)(
+            value,
+            answers,
+          );
+      }
+
+      if (typeof sourceFn === "function") {
+        runtimeConfig["source"] = (
+          term: string | undefined,
+          opt: unknown,
+        ) =>
+          (
+            sourceFn as (
+              term: string | undefined,
+              opt: unknown,
+              answers?: Record<string, unknown>,
+            ) => unknown
+          )(term, opt, answers);
+      }
+
       const bypass = this.consumeBypass(promptName);
 
       let value: unknown;
       if (typeof bypass !== "undefined") {
-        value = this.coerceBypassValue(promptType, bypass, inquirerConfig, promptName);
+        value = this.coerceBypassValue(promptType, bypass, runtimeConfig, promptName);
       } else {
         // Dynamically import the right inquirer prompt.
-        value = await this.askPrompt(promptType, promptName, inquirerConfig as UnknownRecord);
+        value = await this.askPrompt(promptType, promptName, runtimeConfig);
       }
 
       // Apply plop-next filter if provided

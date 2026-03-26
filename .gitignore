@@ -36,3 +36,4 @@ instrumented
 demoFiles/
 .vscode/settings.json
 gitDiff
+generated/

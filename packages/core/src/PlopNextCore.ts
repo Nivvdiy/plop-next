@@ -393,27 +393,8 @@ export class PlopNextCore {
   }
 
   renderString(template: string, data: Record<string, unknown>): string {
-    const unresolved = new Map<string, string>();
-    let unresolvedIndex = 0;
-
-    const safeTemplate = template.replace(/{{\s*([A-Za-z0-9_.]+)\s*}}/g, (full, rawPath: string) => {
-      if (this.lookupValue(data, rawPath) !== undefined) {
-        return full;
-      }
-
-      const token = `__PLOPNEXT_UNRESOLVED_${unresolvedIndex++}__`;
-      unresolved.set(token, full);
-      return token;
-    });
-
-    const compiled = Handlebars.compile(safeTemplate, { noEscape: true });
-    let rendered = compiled(data);
-
-    for (const [token, original] of unresolved.entries()) {
-      rendered = rendered.split(token).join(original);
-    }
-
-    return rendered;
+    const compiled = Handlebars.compile(template, { noEscape: true });
+    return compiled(data);
   }
 
   getGenerator(name: string): GeneratorConfig | undefined {
@@ -779,22 +760,6 @@ export class PlopNextCore {
       }
 
       current = record[segment];
-    }
-
-    return current;
-  }
-
-  private lookupValue(data: UnknownRecord, path: string): unknown {
-    const keys = path.split(".").filter(Boolean);
-    let current: unknown = data;
-
-    for (const key of keys) {
-      if (current === null || typeof current !== "object") {
-        return undefined;
-      }
-
-      const record = current as UnknownRecord;
-      current = record[key];
     }
 
     return current;

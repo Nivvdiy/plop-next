@@ -184,6 +184,7 @@ export type SearchChoiceItem =
 export type SearchSourceFn = (
   term: string | undefined,
   opt: SearchSourceContext,
+  answers?: Record<string, unknown>,
 ) => ReadonlyArray<SearchChoiceItem> | Promise<ReadonlyArray<SearchChoiceItem>>;
 
 export interface SearchSourceContext {
@@ -246,9 +247,9 @@ export interface PlopPromptBase {
   /** Input message or callback to generate dynamic message. */
   message?: string | ((answers: Record<string, any>) => string);
   /** Default value if no answer provided. */
-  default?: unknown;
+  default?: unknown | ((answers: Record<string, unknown>) => unknown | Promise<unknown>);
   /** Filter the user input before storing in answers. */
-  filter?: (value: unknown, answers: Record<string, any>) => unknown;
+  filter?: (value: unknown, answers?: Record<string, unknown>) => unknown;
   /** Show or hide prompt based on condition or callback. */
   when?: boolean | ((answers: Record<string, any>) => boolean);
   /** Force prompt even if answer already exists. */
@@ -321,7 +322,7 @@ export interface PlopPromptSearch extends PlopPromptBase {
   source: SearchSourceFn;
   pageSize?: number;
   /** Validate the selected value before accepting. */
-  validate?: (value: unknown) => boolean | string | Promise<boolean | string>;
+  validate?: (value: unknown, answers?: Record<string, unknown>) => boolean | string | Promise<boolean | string>;
 }
 
 /** Multi-choice checkbox prompt. */
@@ -334,7 +335,7 @@ export interface PlopPromptCheckbox extends PlopPromptBase {
   required?: boolean;
   shortcuts?: CheckboxShortcuts;
   /** Validate the selected values array before accepting. */
-  validate?: (choices: readonly CheckboxSelectedChoice[]) => boolean | string | Promise<boolean | string>;
+  validate?: (choices: readonly CheckboxSelectedChoice[], answers?: Record<string, unknown>) => boolean | string | Promise<boolean | string>;
 }
 
 /** Multi-line editor prompt (opens the user's $EDITOR). */
