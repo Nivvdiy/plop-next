@@ -69,7 +69,7 @@ export interface TranslatableFieldRule {
   idField?: string;
 }
 
-import type { Theme } from "./theme";
+import type { Theme, ThemeConfig } from "./theme";
 
 // ─────────────────────────────────────────────
 //  Theme
@@ -79,7 +79,7 @@ import type { Theme } from "./theme";
 export type InquirerStyleObject = Partial<Theme["style"]> & Record<string, unknown>;
 
 /** Single theme object for both @inquirer and plop-next defaults/overrides. */
-export type PlopNextTheme = Partial<Theme>;
+export type PlopNextTheme = ThemeConfig;
 
 // ─────────────────────────────────────────────
 //  Prompts

@@ -1,6 +1,6 @@
 import { styleText } from "node:util";
 import figures from "figures";
-import { Separator } from "./index";
+import type { Separator } from "./prompts/Separator";
 
 type Prettify<T> = {
   [K in keyof T]: T[K];
@@ -19,6 +19,22 @@ export type Keybinding = {
   action: string;
   description?: string;
 };
+
+export const BUILT_IN_PROMPT_TYPES = [
+  "input",
+  "select",
+  "list",
+  "checkbox",
+  "confirm",
+  "search",
+  "password",
+  "expand",
+  "editor",
+  "number",
+  "rawlist",
+] as const;
+
+export type PromptThemeType = (typeof BUILT_IN_PROMPT_TYPES)[number];
 
 type NormalizedChoice<Value> = {
   value: Value;
@@ -147,6 +163,30 @@ export type DefaultTheme = {
 
 export type Theme<Extension extends object = object> = Prettify<Extension & DefaultTheme>;
 
+/**
+ * Shorthand aliases accepted in theme configs.
+ * They are normalized to style/i18n at runtime.
+ */
+export type ThemeAliases = {
+  waitingMessage?: (enterKey: string) => string;
+  maskedText?: string;
+  disabledError?: string;
+};
+
+/**
+ * One theme scope (global or prompt-specific).
+ */
+export type PromptThemeScope = Prettify<Partial<Theme> & ThemeAliases>;
+
+/**
+ * Public theme input accepted by setTheme/core config.
+ * Allows global fields and per-prompt overrides at the same level.
+ */
+export type ThemeConfig = Prettify<
+  PromptThemeScope &
+  Partial<Record<PromptThemeType, PromptThemeScope>>
+>;
+
 export const defaultTheme: DefaultTheme = {
   icon: {
     idle: styleText('blue', '?'),
@@ -215,6 +255,32 @@ export const defaultTheme: DefaultTheme = {
       },
       error: (text: string) => styleText("red", text),
       warning: (text: string) => styleText("yellow", text),
+    },
+  },
+};
+
+/**
+ * Type-specific theme overrides for each @inquirer/prompts prompt type.
+ * These are merged after the global defaultTheme.
+ */
+export const PROMPT_TYPE_THEMES: Partial<Record<PromptThemeType, PromptThemeScope>> = {
+  /**
+   * Checkbox-specific defaults.
+   * - Different disabledError message ("toggled" instead of "selected")
+   */
+  checkbox: {
+    i18n: {
+      disabledError: "This option is disabled and cannot be toggled.",
+    },
+  },
+
+  /**
+   * Search-specific defaults.
+   * - Disabled items are prefixed with "- " for visibility
+   */
+  search: {
+    style: {
+      disabled: (text: string) => styleText("dim", `- ${text}`),
     },
   },
 };

@@ -269,6 +269,7 @@ export class PlopNextRunner {
         name: "__generator",
         message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
         choices,
+        pageSize: this.core.getGeneratorPageSize(),
       });
 
       if (typeof selected !== "string" || selected.length === 0) {

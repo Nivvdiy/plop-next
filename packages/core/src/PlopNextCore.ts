@@ -47,8 +47,12 @@ import {
   listCustomPromptTypes,
   registerCustomPrompt,
 } from "./prompts/customPrompt";
-import { defaultTheme } from "./theme";
-import type { DefaultTheme, Theme } from "./theme";
+import {
+  BUILT_IN_PROMPT_TYPES,
+  defaultTheme,
+  PROMPT_TYPE_THEMES,
+} from "./theme";
+import type { DefaultTheme, PromptThemeType, Theme } from "./theme";
 import type { SeparatorLike } from "./prompts/Separator";
 
 export interface UseI18nOptions {
@@ -129,6 +133,7 @@ export class PlopNextCore {
   private i18nAdapter?: I18nAdapter;
   private readonly translatableFieldRules = new Map<string, TranslatableFieldRule[]>();
   private welcomeMessage: string | null = null;
+  private generatorPageSize = 7;
   private plopfilePath?: string;
   private destBasePath: string = process.cwd();
   private defaultInclude: DefaultIncludeConfig = {};
@@ -350,6 +355,26 @@ export class PlopNextCore {
     }
 
     return this.i18nAdapter?.getWelcomeMessage?.() ?? null;
+  }
+
+  /**
+   * Set page size used by the generator selection prompt.
+   * Defaults to 7.
+   */
+  setGeneratorPageSize(pageSize: number): this {
+    if (!Number.isInteger(pageSize) || pageSize < 1) {
+      throw new Error('Generator page size must be an integer greater than or equal to 1.');
+    }
+
+    this.generatorPageSize = pageSize;
+    return this;
+  }
+
+  /**
+   * Get page size used by the generator selection prompt.
+   */
+  getGeneratorPageSize(): number {
+    return this.generatorPageSize;
   }
 
   setI18nAdapter(adapter: I18nAdapter): this {
@@ -774,122 +799,240 @@ export class PlopNextCore {
   }
 
   private resolvePromptTheme(type: string): UnknownRecord {
-    const theme = this.resolveTheme();
+    const theme = this.resolvePromptTypeTheme(type);
     return this.promptThemeSelectorRegistry.resolveTheme(type, theme);
   }
 
-  private resolveTheme(): Theme {
-    const spinnerFrames = this.theme.spinner?.frames;
+  /**
+   * Resolve the full theme for a specific prompt type.
+   * Merges in order: defaultTheme → type defaults → user global theme → user type theme.
+   */
+  private resolvePromptTypeTheme(type: string): Theme {
+    const typeDefaults = PROMPT_TYPE_THEMES[type as PromptThemeType];
+    const userTypeTheme = this.resolveUserPromptTypeTheme(type);
 
+    return this.mergeThemeLayers(
+      typeDefaults,
+      this.resolveNormalizedGlobalTheme(),
+      userTypeTheme,
+    );
+  }
+
+  private resolveTheme(): Theme {
+    return this.mergeThemeLayers(this.resolveNormalizedGlobalTheme());
+  }
+
+  private cloneTheme(theme: PlopNextTheme): PlopNextTheme {
+    return this.cloneUnknown(theme) as PlopNextTheme;
+  }
+
+  private resolveNormalizedGlobalTheme(): Partial<Theme> {
+    return this.normalizeThemeScope(this.theme as UnknownRecord);
+  }
+
+  private resolveUserPromptTypeTheme(type: string): Partial<Theme> | undefined {
+    const source = this.theme as UnknownRecord;
+    const rawTypeTheme = source[type];
+
+    if (!this.isRecord(rawTypeTheme)) {
+      return undefined;
+    }
+
+    return this.normalizeThemeScope(rawTypeTheme);
+  }
+
+  private normalizeThemeScope(source: UnknownRecord): Partial<Theme> {
+    const normalized: UnknownRecord = {};
+
+    for (const [key, value] of Object.entries(source)) {
+      if (this.isPromptThemeTypeKey(key)) continue;
+      if (key === "waitingMessage" || key === "maskedText" || key === "disabledError") {
+        continue;
+      }
+      normalized[key] = value;
+    }
+
+    const style = this.isRecord(normalized.style)
+      ? { ...normalized.style }
+      : {};
+
+    if (source.waitingMessage !== undefined) {
+      style.waitingMessage = source.waitingMessage;
+    }
+
+    if (source.maskedText !== undefined) {
+      style.maskedText = source.maskedText;
+    }
+
+    if (Object.keys(style).length > 0) {
+      normalized.style = style;
+    }
+
+    const i18n = this.isRecord(normalized.i18n)
+      ? { ...normalized.i18n }
+      : {};
+
+    if (source.disabledError !== undefined) {
+      i18n.disabledError = source.disabledError;
+    }
+
+    if (Object.keys(i18n).length > 0) {
+      normalized.i18n = i18n;
+    }
+
+    return normalized as Partial<Theme>;
+  }
+
+  private mergeThemeLayers(...layers: Array<Partial<Theme> | undefined>): Theme {
     const mergedTheme: Theme = {
-      icon: this.theme.icon ?? defaultTheme.icon,
-      prefix: this.theme.prefix ?? defaultTheme.prefix,
+      icon: defaultTheme.icon,
+      prefix: defaultTheme.prefix,
       spinner: {
         ...defaultTheme.spinner,
-        ...(this.theme.spinner ?? {}),
-        frames: Array.isArray(spinnerFrames)
-          ? [...spinnerFrames]
-          : [...(defaultTheme.spinner?.frames ?? [])],
+        frames: [...(defaultTheme.spinner?.frames ?? [])],
       },
       style: {
         ...defaultTheme.style,
-        ...(this.theme.style ?? {}),
       },
-      validationFailureMode:
-        this.theme.validationFailureMode ?? defaultTheme.validationFailureMode,
-      indexMode: this.theme.indexMode ?? defaultTheme.indexMode,
+      validationFailureMode: defaultTheme.validationFailureMode,
+      indexMode: defaultTheme.indexMode,
       i18n: {
         ...defaultTheme.i18n,
-        ...(this.theme.i18n ?? {}),
       },
-      keybindings: this.theme.keybindings ?? defaultTheme.keybindings,
+      keybindings: defaultTheme.keybindings,
       plopNext: {
         ...defaultTheme.plopNext,
-        ...(this.theme.plopNext ?? {}),
         generatorMenu: {
           ...defaultTheme.plopNext?.generatorMenu,
-          ...(this.theme.plopNext?.generatorMenu ?? {}),
         },
         actionLog: {
           ...defaultTheme.plopNext?.actionLog,
-          ...(this.theme.plopNext?.actionLog ?? {}),
         },
         errors: {
           ...defaultTheme.plopNext?.errors,
-          ...(this.theme.plopNext?.errors ?? {}),
           prefix: {
             ...defaultTheme.plopNext?.errors?.prefix,
-            ...(this.theme.plopNext?.errors?.prefix ?? {}),
           },
         },
       },
     };
 
-    return mergedTheme;
-  }
+    for (const layer of layers) {
+      if (!layer) continue;
 
-  private cloneTheme(theme: PlopNextTheme): PlopNextTheme {
-    return {
-      ...(theme.prefix !== undefined ? { prefix: theme.prefix } : {}),
-      ...(theme.icon !== undefined ? { icon: theme.icon } : {}),
-      ...(theme.spinner !== undefined
-        ? {
-            spinner: {
-              ...theme.spinner,
-              ...(Array.isArray(theme.spinner.frames)
-                ? { frames: [...theme.spinner.frames] }
-                : {}),
+      mergedTheme.icon = this.mergeIconLayers(mergedTheme.icon, layer.icon);
+
+      if (layer.prefix !== undefined) {
+        mergedTheme.prefix = layer.prefix;
+      }
+
+      if (layer.spinner) {
+        mergedTheme.spinner = {
+          ...mergedTheme.spinner,
+          ...layer.spinner,
+          ...(Array.isArray(layer.spinner.frames)
+            ? { frames: [...layer.spinner.frames] }
+            : {}),
+        };
+      }
+
+      if (layer.style) {
+        mergedTheme.style = {
+          ...mergedTheme.style,
+          ...layer.style,
+        };
+      }
+
+      if (layer.validationFailureMode !== undefined) {
+        mergedTheme.validationFailureMode = layer.validationFailureMode;
+      }
+
+      if (layer.indexMode !== undefined) {
+        mergedTheme.indexMode = layer.indexMode;
+      }
+
+      if (layer.i18n) {
+        mergedTheme.i18n = {
+          ...mergedTheme.i18n,
+          ...layer.i18n,
+        };
+      }
+
+      if (layer.keybindings !== undefined) {
+        mergedTheme.keybindings = [...layer.keybindings];
+      }
+
+      if (layer.plopNext) {
+        mergedTheme.plopNext = {
+          ...mergedTheme.plopNext,
+          ...layer.plopNext,
+          generatorMenu: {
+            ...mergedTheme.plopNext?.generatorMenu,
+            ...layer.plopNext.generatorMenu,
+          },
+          actionLog: {
+            ...mergedTheme.plopNext?.actionLog,
+            ...layer.plopNext.actionLog,
+          },
+          errors: {
+            ...mergedTheme.plopNext?.errors,
+            ...layer.plopNext.errors,
+            prefix: {
+              ...mergedTheme.plopNext?.errors?.prefix,
+              ...layer.plopNext.errors?.prefix,
             },
-          }
-        : {}),
-      ...(theme.style !== undefined ? { style: { ...theme.style } } : {}),
-      ...(theme.validationFailureMode !== undefined
-        ? { validationFailureMode: theme.validationFailureMode }
-        : {}),
-      ...(theme.indexMode !== undefined ? { indexMode: theme.indexMode } : {}),
-      ...(theme.i18n !== undefined ? { i18n: { ...theme.i18n } } : {}),
-      ...(theme.keybindings !== undefined
-        ? { keybindings: [...theme.keybindings] }
-        : {}),
-      ...(theme.plopNext !== undefined
-        ? {
-            plopNext: {
-              ...theme.plopNext,
-              ...(theme.plopNext.generatorMenu
-                ? {
-                    generatorMenu: {
-                      ...theme.plopNext.generatorMenu,
-                    },
-                  }
-                : {}),
-              ...(theme.plopNext.actionLog
-                ? {
-                    actionLog: {
-                      ...theme.plopNext.actionLog,
-                    },
-                  }
-                : {}),
-              ...(theme.plopNext.errors
-                ? {
-                    errors: {
-                      ...theme.plopNext.errors,
-                      ...(theme.plopNext.errors.prefix
-                        ? {
-                            prefix: {
-                              ...theme.plopNext.errors.prefix,
-                            },
-                          }
-                        : {}),
-                    },
-                  }
-                : {}),
-            },
-          }
-        : {}),
-    };
+          },
+        };
+      }
+    }
+
+    return mergedTheme;
   }
 
   private isRecord(value: unknown): value is UnknownRecord {
     return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  private isPromptThemeTypeKey(key: string): key is PromptThemeType {
+    return (BUILT_IN_PROMPT_TYPES as readonly string[]).includes(key);
+  }
+
+  private cloneUnknown(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.cloneUnknown(item));
+    }
+
+    if (this.isRecord(value)) {
+      const cloned: UnknownRecord = {};
+      for (const [key, item] of Object.entries(value)) {
+        cloned[key] = this.cloneUnknown(item);
+      }
+      return cloned;
+    }
+
+    return value;
+  }
+
+  /**
+   * Merge icon values when applying one layer over another.
+   */
+  private mergeIconLayers(
+    base: DefaultTheme["icon"],
+    override: DefaultTheme["icon"] | undefined,
+  ): string | {
+    idle?: string;
+    done?: string;
+    cursor?: string;
+    checked?: string;
+    unchecked?: string;
+    disabledChecked?: string;
+    disabledUnchecked?: string;
+  } | undefined {
+    if (override === undefined) return base;
+    if (typeof override === "string") return override;
+    if (typeof base === "string" || base === undefined) {
+      return { ...override };
+    }
+    return { ...base, ...override };
   }
 }

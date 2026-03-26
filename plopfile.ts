@@ -137,8 +137,9 @@ export default function plop(plop: PlopNext) {
   });
 
   // Appliquer le thème et la locale
-  plop.setTheme(customTheme);
+  //plop.setTheme(customTheme);
   plop.useI18n({ auto: true });
+  plop.setGeneratorPageSize(10);
 
   // ==================
   // 2. GÉNÉRATEUR: Composant React (avec templates .hbs)
