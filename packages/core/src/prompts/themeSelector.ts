@@ -54,6 +54,8 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
     indexMode: true,
     style: ["answer", "message", "error", "help", "highlight", "description", "disabled", "keysHelpTip"],
     icon: ["cursor"],
+    i18n: true,
+    keybindings: true,
   },
   list: { baseSelector: "select" },
   checkbox: {
@@ -61,9 +63,11 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
     spinner: true,
     style: [
       "answer", "message", "error", "defaultAnswer", "help", "highlight",
-      "key", "disabledChoice", "description", "renderSelectedChoices", "keysHelpTip",
+      "key", "disabled", "disabledChoice", "description", "renderSelectedChoices", "keysHelpTip",
     ],
-    icon: ["checked", "unchecked", "cursor"],
+    icon: ["checked", "unchecked", "cursor", "disabledChecked", "disabledUnchecked"],
+    i18n: true,
+    keybindings: true,
   },
   confirm: {
     prefix: true,
@@ -79,7 +83,7 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
   password: {
     prefix: true,
     spinner: true,
-    style: ["answer", "message", "error", "help"],
+    style: ["answer", "message", "error", "help", "maskedText"],
   },
   expand: {
     prefix: true,
@@ -90,7 +94,7 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
     prefix: true,
     spinner: true,
     validationFailureMode: true,
-    style: ["message", "error", "help", "key"],
+    style: ["message", "error", "help", "key", "waitingMessage"],
   },
   number: {
     prefix: true,

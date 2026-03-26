@@ -798,6 +798,11 @@ export class PlopNextCore {
       validationFailureMode:
         this.theme.validationFailureMode ?? defaultTheme.validationFailureMode,
       indexMode: this.theme.indexMode ?? defaultTheme.indexMode,
+      i18n: {
+        ...defaultTheme.i18n,
+        ...(this.theme.i18n ?? {}),
+      },
+      keybindings: this.theme.keybindings ?? defaultTheme.keybindings,
       plopNext: {
         ...defaultTheme.plopNext,
         ...(this.theme.plopNext ?? {}),
@@ -842,6 +847,10 @@ export class PlopNextCore {
         ? { validationFailureMode: theme.validationFailureMode }
         : {}),
       ...(theme.indexMode !== undefined ? { indexMode: theme.indexMode } : {}),
+      ...(theme.i18n !== undefined ? { i18n: { ...theme.i18n } } : {}),
+      ...(theme.keybindings !== undefined
+        ? { keybindings: [...theme.keybindings] }
+        : {}),
       ...(theme.plopNext !== undefined
         ? {
             plopNext: {

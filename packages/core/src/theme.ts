@@ -1,4 +1,6 @@
 import { styleText } from "node:util";
+import figures from "figures";
+import { Separator } from "./index";
 
 type Prettify<T> = {
   [K in keyof T]: T[K];
@@ -8,6 +10,25 @@ type Prettify<T> = {
  * Union type representing the possible statuses of a prompt.
  */
 export type Status = "loading" | "idle" | "done" | (string & {});
+
+/**
+ * A keybinding entry associating one or more key sequences to a named action.
+ */
+export type Keybinding = {
+  key: string | string[];
+  action: string;
+  description?: string;
+};
+
+type NormalizedChoice<Value> = {
+  value: Value;
+  name: string;
+  checkedName: string;
+  description?: string;
+  short: string;
+  disabled: boolean | string;
+  checked: boolean;
+};
 
 export type DefaultTheme = {
   icon?: string | {
@@ -21,6 +42,10 @@ export type DefaultTheme = {
     checked?: string;
     /** Unchecked icon, used by checkbox for unselected items. */
     unchecked?: string;
+    /** Checked icon shown for a disabled-but-checked item in checkbox prompts. */
+    disabledChecked?: string;
+    /** Unchecked icon shown for a disabled-but-unchecked item in checkbox prompts. */
+    disabledUnchecked?: string;
   };
 
   /**
@@ -56,9 +81,9 @@ export type DefaultTheme = {
      * Renders the summary of selected choices for a checkbox prompt.
      * Receives the selected choices and the full list (including Separators).
      */
-    renderSelectedChoices?: (
-      selectedChoices: ReadonlyArray<unknown>,
-      allChoices: ReadonlyArray<unknown>,
+    renderSelectedChoices?: <T>(
+      selectedChoices: ReadonlyArray<NormalizedChoice<T>>,
+      allChoices: ReadonlyArray<NormalizedChoice<T> | Separator>,
     ) => string;
     /**
      * Formats the keyboard shortcuts tip shown below a prompt.
@@ -66,13 +91,32 @@ export type DefaultTheme = {
      * - `select` / `list` / `checkbox` pass `[key: string, action: string][]` (paires)
      * Can return `undefined` to hide the tip entirely.
      */
-    keysHelpTip?: (keys: [string, string][] | string[]) => string | undefined;
+    keysHelpTip?: (keys: [key: string, action: string][]) => string | undefined;
     key?: (text: string) => string;
+    /**
+     * Static text displayed as a masked placeholder in password prompts
+     * when no mask character is set.
+     */
+    maskedText?: string;
+    /** Message shown while waiting for the user to open the editor (editor prompts). */
+    waitingMessage?: (enterKey: string) => string;
   };
 
   validationFailureMode?: "keep" | "clear";
 
   indexMode?: "hidden" | "number";
+
+  /** Internationalisation strings used by individual prompt types. */
+  i18n?: {
+    /** Message shown when the user tries to interact with a disabled option. */
+    disabledError?: string;
+  };
+
+  /**
+   * Custom keybindings appended to the default set of a prompt.
+   * Each entry maps one or more key sequences to a named action.
+   */
+  keybindings?: ReadonlyArray<Keybinding>;
 
   /**
    * plop-next specific CLI style helpers.
@@ -105,19 +149,23 @@ export type Theme<Extension extends object = object> = Prettify<Extension & Defa
 
 export const defaultTheme: DefaultTheme = {
   icon: {
-    idle: "?",
-    done: "v",
-    cursor: "❯",
-    checked: "◉",
-    unchecked: "◯",
+    idle: styleText('blue', '?'),
+    done: styleText('green', figures.tick),
+    cursor: figures.pointer,
+    checked: styleText('green', figures.circleFilled),
+    unchecked: figures.circle,
+    disabledChecked: styleText('green', figures.circleDouble),
+    disabledUnchecked: "-",
   },
   prefix: {
-    idle: styleText("blue", "?"),
-    done: styleText("green", "v"),
+    idle: styleText('blue', '?'),
+    done: styleText('green', figures.tick),
   },
   spinner: {
     interval: 80,
-    frames: ["-", "\\", "|", "/"].map((frame) => styleText("yellow", frame)),
+    frames: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'].map((frame) =>
+      styleText('yellow', frame),
+    ),
   },
   style: {
     answer: (text: string) => styleText("cyan", text),
@@ -126,24 +174,27 @@ export const defaultTheme: DefaultTheme = {
     defaultAnswer: (text: string) => styleText("dim", `(${text})`),
     help: (text: string) => styleText("dim", text),
     highlight: (text: string) => styleText("cyan", text),
-    description: (text: string) => styleText("dim", text),
-    disabled: (text: string) => styleText("dim", text),
+    description: (text: string) => styleText('cyan', text),
+    disabled: (text: string) => styleText('dim', text),
     disabledChoice: (text: string) => styleText("dim", `- ${text}`),
-    searchTerm: (text: string) => styleText("cyan", text),
-    renderSelectedChoices: (selectedChoices: ReadonlyArray<unknown>) =>
-      (selectedChoices as Array<{ name?: string; value?: unknown }>)
-        .map((c) => c.name ?? String(c.value ?? ""))
-        .join(", "),
-    keysHelpTip: (keys: [string, string][] | string[]) => {
-      const parts = (keys as unknown[]).map((k) =>
-        Array.isArray(k) ? `${k[0]}: ${k[1]}` : String(k),
-      );
-      return styleText("dim", parts.join(" • "));
-    },
+    searchTerm: (text: string) => styleText('cyan', text),
+    renderSelectedChoices: (selectedChoices) =>
+      selectedChoices.map((choice) => choice.short).join(', '),
+    keysHelpTip: (keys: [string, string][]) =>
+      keys
+        .map(([key, action]) => `${styleText('bold', key)} ${styleText('dim', action)}`)
+        .join(styleText('dim', ' • ')),
     key: (text: string) => styleText("cyan", styleText("bold", `<${text}>`)),
+    maskedText: "[input is masked]",
+    waitingMessage: (enterKey: string) =>
+      `Press ${enterKey} to launch your preferred editor.`,
   },
   validationFailureMode: "keep",
-  indexMode: "number",
+  indexMode: "hidden",
+  i18n: {
+    disabledError: "This option is disabled and cannot be selected.",
+  },
+  keybindings: [] as ReadonlyArray<Keybinding>,
   plopNext: {
     welcome: (text: string) => styleText("dim", text),
     generatorMenu: {

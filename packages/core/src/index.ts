@@ -58,7 +58,7 @@ export type {
   PlopNextTheme,
   TranslatableFieldRule,
 } from "./types";
-export type { Status, DefaultTheme, Theme } from "./theme";
+export type { Status, DefaultTheme, Theme, Keybinding } from "./theme";
 export type { PromptHandler, PromptHandlerConfig, InquirerPromptFn } from "./prompts/types";
 export type { PromptThemeSelectorOptions, PromptThemeSelector, PromptThemeFieldSpec } from "./prompts/themeSelector";
 export { createSelectHandler } from "./prompts/selectPrompt";
