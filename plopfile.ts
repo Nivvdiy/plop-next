@@ -1,59 +1,7 @@
-import type { PlopNext, PlopNextTheme, PlopPromptBase } from "@plop-next/cli";
+import type { PlopNext, PlopPromptBase } from "@plop-next/cli";
 import { styleText } from "node:util";
 import { PlopNextI18n } from "@plop-next/i18n";
 import TableMultiple from "@bartheleway/inquirer-table-multiple";
-
-/**
- * Thème personnalisé — remplace les couleurs cyan/green/bold par des tons magenta/jaune.
- */
-const customTheme: PlopNextTheme = {
-  prefix: {
-    idle: styleText("magenta", "◆"),
-    done: styleText("yellow", "◇"),
-  },
-  spinner: {
-    interval: 100,
-    frames: [
-      ".     ",
-      " .    ",
-      "  .   ",
-      "   .  ",
-      "    . ",
-      "     .",
-      "      ",
-    ].map((frame) => styleText("magenta", frame)),
-  },
-  style: {
-    answer: (text: string) => styleText("magenta", text),
-    message: (text: string) => styleText(["bold", "white"], text),
-    error: (text: string) => styleText(["redBright", "underline"], `> ${text}`),
-    defaultAnswer: (text: string) => styleText("green", `(${text})`),
-    help: (text: string) => styleText(["italic", "cyan"], text),
-    highlight: (text: string) => styleText("yellow", text),
-    key: (text: string) => styleText(["yellow", "bold"], `<${text}>`),
-  },
-  plopNext: {
-    welcome: (text: string) => styleText(["bold", "magenta"], text),
-    generatorMenu: {
-      title: (text: string) => styleText(["bold", "yellow"], text),
-      description: (text: string) => styleText("magenta", text),
-    },
-    actionLog: {
-      success: (text: string) => styleText("yellow", `✔ ${text}`),
-      //error: (text: string) => styleText(["bold", "red"], `✖ ${text}`),
-      skipped: (text: string) => styleText("magenta", `● ${text}`),
-      info: (text: string) => styleText("white", text),
-    },
-    errors: {
-      prefix: {
-        error: styleText(["bold", "red"], "✖"),
-        warning: styleText(["bold", "yellow"], "⚠"),
-      },
-      error: (text: string) => styleText(["bold", "red"], text),
-      warning: (text: string) => styleText(["bold", "yellow"], text),
-    },
-  },
-};
 
 type TableMultiplePrompt = Parameters<typeof TableMultiple>[0] & PlopPromptBase;
 
@@ -127,6 +75,10 @@ export default function plop(plop: PlopNext) {
   // Instancier le plugin i18n
   const i18n = new PlopNextI18n(plop);
 
+  // Charger les traductions depuis des dossiers de modules locale/textes
+  i18n.registerLocales("./plop/locales");
+  i18n.registerTexts("./plop/texts");
+
   // Enregistrer prompt custom
   plop.registerPrompt("table-multiple", TableMultiple, {
     theme: { selector: "select" },
@@ -137,7 +89,7 @@ export default function plop(plop: PlopNext) {
   });
 
   // Appliquer le thème et la locale
-  //plop.setTheme(customTheme);
+  plop.setTheme("./plop/theme.ts");
   plop.useI18n({ auto: true });
   plop.setGeneratorPageSize(10);
 

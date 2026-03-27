@@ -17,6 +17,7 @@ import {
 } from "@plop-next/core";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, isAbsolute, resolve } from "node:path";
+import { createRequire } from "node:module";
 import type { PlopNextCore } from "@plop-next/core";
 import type { InquirerPromptFn } from "@plop-next/core";
 import { createLocalizedPrompts } from "@inquirer/i18n";
@@ -25,8 +26,12 @@ import { I18nRegistry } from "./I18nRegistry";
 
 type LocalesBundle = Record<string, LocaleTexts>;
 type LocaleSource = LocaleTexts | LocalesBundle | string;
+type SourceIntent = "locale" | "locales" | "texts";
 type NamedChoice = { name: string; value: unknown };
 type PromptRecord = PlopPrompt & UnknownRecord;
+
+const requireModule = createRequire(import.meta.url);
+const SUPPORTED_I18N_FILE_EXTENSIONS = new Set([".json", ".js", ".cjs", ".ts", ".cts"]);
 
 export interface RegisterLocaleOptions {
   /** If true, this locale becomes the active locale immediately. */
@@ -119,7 +124,11 @@ export class PlopNextI18n {
     locales: LocaleSource,
     options: RegisterLocaleOptions = {},
   ): this {
-    const resolved = this.resolveLocalesOrSingle(locales, this.registry.getActiveLocale());
+    const resolved = this.resolveLocalesOrSingle(
+      locales,
+      this.registry.getActiveLocale(),
+      "locales",
+    );
 
     if (this.isLocalesBundle(resolved)) {
       const entries = Object.entries(resolved);
@@ -164,6 +173,7 @@ export class PlopNextI18n {
     const resolved = this.resolveLocalesOrSingle(
       localeOrTexts as LocaleSource,
       this.registry.getActiveLocale(),
+      "texts",
     );
 
     if (this.isLocalesBundle(resolved)) {
@@ -207,7 +217,7 @@ export class PlopNextI18n {
   }
 
   private resolveSingleLocaleTexts(locale: LocaleTag, input: LocaleTexts | string): LocaleTexts {
-    const resolved = this.resolveLocalesOrSingle(input, locale);
+    const resolved = this.resolveLocalesOrSingle(input, locale, "locale");
 
     if (this.isLocalesBundle(resolved)) {
       if (resolved[locale]) {
@@ -230,19 +240,26 @@ export class PlopNextI18n {
   private resolveLocalesOrSingle(
     input: LocaleSource,
     fallbackLocale: LocaleTag,
+    intent: SourceIntent,
   ): LocalesBundle | LocaleTexts {
     if (typeof input === "string") {
-      return this.resolveFromPath(input, fallbackLocale);
+      return this.resolveFromPath(input, fallbackLocale, intent);
     }
 
     if (!this.isPlainObject(input)) {
-      throw new Error("i18n source must be an object, a JSON file path, or a directory path.");
+      throw new Error(
+        "i18n source must be an object, a locale file path (.json/.js/.cjs/.ts/.cts), or a directory path.",
+      );
     }
 
-    return this.normalizeObjectInput(input, fallbackLocale);
+    return this.normalizeObjectInput(input, fallbackLocale, intent);
   }
 
-  private resolveFromPath(inputPath: string, fallbackLocale: LocaleTag): LocalesBundle | LocaleTexts {
+  private resolveFromPath(
+    inputPath: string,
+    fallbackLocale: LocaleTag,
+    intent: SourceIntent,
+  ): LocalesBundle | LocaleTexts {
     const absolutePath = isAbsolute(inputPath) ? inputPath : resolve(process.cwd(), inputPath);
 
     if (!existsSync(absolutePath)) {
@@ -252,18 +269,21 @@ export class PlopNextI18n {
     const stats = statSync(absolutePath);
     if (stats.isDirectory()) {
       const files = readdirSync(absolutePath)
-        .filter((name: string) => extname(name).toLowerCase() === ".json")
+        .filter((name: string) => SUPPORTED_I18N_FILE_EXTENSIONS.has(extname(name).toLowerCase()))
         .sort();
 
       if (files.length === 0) {
-        throw new Error(`No JSON locale files found in directory: ${absolutePath}`);
+        throw new Error(
+          `No locale/text files found in directory: ${absolutePath}. ` +
+            `Supported extensions: .json, .js, .cjs, .ts, .cts.`,
+        );
       }
 
       const bundle: LocalesBundle = {};
       for (const fileName of files) {
         const filePath = resolve(absolutePath, fileName);
-        const parsed = this.parseJsonFile(filePath);
-        const normalized = this.normalizeObjectInput(parsed, fallbackLocale);
+        const parsed = this.parseSourceFile(filePath);
+        const normalized = this.normalizeObjectInput(parsed, fallbackLocale, intent);
 
         if (this.isLocalesBundle(normalized)) {
           for (const [locale, texts] of Object.entries(normalized)) {
@@ -272,15 +292,40 @@ export class PlopNextI18n {
           continue;
         }
 
-        const locale = basename(fileName, ".json");
-        bundle[locale] = this.mergePlainObjects(bundle[locale] ?? {}, normalized);
+        const locale = basename(fileName, extname(fileName));
+        if (!this.isLocaleLikeKey(locale) && intent !== "locale") {
+          throw new Error(
+            `Invalid ${intent} file name "${fileName}" in directory: ${absolutePath}. ` +
+              `Expected a locale-like name such as "en.json", "fr.js", or "de.ts".`,
+          );
+        }
+
+        const targetLocale = this.isLocaleLikeKey(locale) ? locale : fallbackLocale;
+        bundle[targetLocale] = this.mergePlainObjects(bundle[targetLocale] ?? {}, normalized);
       }
 
       return bundle;
     }
 
-    const parsed = this.parseJsonFile(absolutePath);
-    return this.normalizeObjectInput(parsed, fallbackLocale);
+    const parsed = this.parseSourceFile(absolutePath);
+    return this.normalizeObjectInput(parsed, fallbackLocale, intent);
+  }
+
+  private parseSourceFile(filePath: string): LocaleTexts {
+    const extension = extname(filePath).toLowerCase();
+
+    if (extension === ".json") {
+      return this.parseJsonFile(filePath);
+    }
+
+    if (!SUPPORTED_I18N_FILE_EXTENSIONS.has(extension)) {
+      throw new Error(
+        `Unsupported i18n file extension "${extension || "<none>"}" at ${filePath}. ` +
+          `Supported extensions: .json, .js, .cjs, .ts, .cts.`,
+      );
+    }
+
+    return this.parseModuleFile(filePath);
   }
 
   private parseJsonFile(filePath: string): LocaleTexts {
@@ -300,10 +345,40 @@ export class PlopNextI18n {
     return parsed as LocaleTexts;
   }
 
+  private parseModuleFile(filePath: string): LocaleTexts {
+    let loaded: unknown;
+    try {
+      loaded = requireModule(filePath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Unable to load i18n module at ${filePath}: ${message}. ` +
+          `If this file is ESM-only, import it in your plopfile and pass the object directly.`,
+      );
+    }
+
+    const unwrapped = this.unwrapModuleDefault(loaded);
+    const value = typeof unwrapped === "function" ? this.unwrapModuleDefault(unwrapped()) : unwrapped;
+
+    if (!this.isPlainObject(value)) {
+      throw new Error(`i18n module must export an object at root: ${filePath}`);
+    }
+
+    return value as LocaleTexts;
+  }
+
   private normalizeObjectInput(
     input: LocaleTexts,
     fallbackLocale: LocaleTag,
+    intent: SourceIntent,
   ): LocalesBundle | LocaleTexts {
+    if (this.looksLikeThemeObject(input)) {
+      throw new Error(
+        `Invalid ${intent} source: looks like a theme object. ` +
+          `Use core.setTheme(pathOrTheme) for theme files.`,
+      );
+    }
+
     if (this.isLocalesBundle(input)) {
       return input;
     }
@@ -337,8 +412,59 @@ export class PlopNextI18n {
     return /^[a-z]{2}(?:[-_][A-Za-z0-9]{2,8})*$/i.test(key);
   }
 
+  private looksLikeThemeObject(value: LocaleTexts): boolean {
+    if (!this.isPlainObject(value)) {
+      return false;
+    }
+
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return false;
+    }
+
+    const directThemeKeys = new Set([
+      "icon",
+      "prefix",
+      "spinner",
+      "style",
+      "validationFailureMode",
+      "indexMode",
+      "i18n",
+      "keybindings",
+      "plopNext",
+      "waitingMessage",
+      "maskedText",
+      "disabledError",
+      "input",
+      "select",
+      "list",
+      "checkbox",
+      "confirm",
+      "search",
+      "password",
+      "expand",
+      "editor",
+      "number",
+      "rawlist",
+    ]);
+
+    return keys.some((key) => directThemeKeys.has(key));
+  }
+
   private isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  private unwrapModuleDefault(value: unknown): unknown {
+    if (!this.isPlainObject(value)) {
+      return value;
+    }
+
+    if (typeof value.default !== "undefined") {
+      return value.default;
+    }
+
+    return value;
   }
 
   private mergePlainObjects(

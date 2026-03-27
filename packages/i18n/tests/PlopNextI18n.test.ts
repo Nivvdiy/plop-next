@@ -134,6 +134,16 @@ describe("PlopNextI18n", () => {
     expect(core.t("cli.selectGenerator")).toBe("Choisir via fichier multi");
   });
 
+  it("registerLocales accepts a CJS file path", () => {
+    i18n.registerLocales(resolve(fixturesDir, "multi-locales.cjs"));
+
+    core.useI18n({ force: "en" });
+    expect(core.t("cli.selectGenerator")).toBe("Choose via CJS module");
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via module CJS");
+  });
+
   it("registerLocales accepts a directory path with one JSON per locale", () => {
     i18n.registerLocales(resolve(fixturesDir, "locales"));
 
@@ -142,6 +152,45 @@ describe("PlopNextI18n", () => {
 
     core.useI18n({ force: "fr" });
     expect(core.t("cli.selectGenerator")).toBe("Choisir via dossier");
+  });
+
+  it("registerLocales accepts a directory path with one CJS file per locale", () => {
+    i18n.registerLocales(resolve(fixturesDir, "locales-modules"));
+
+    core.useI18n({ force: "en" });
+    expect(core.t("cli.selectGenerator")).toBe("Choose via module directory");
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via dossier modules");
+  });
+
+  it("registerLocales rejects theme JSON files", () => {
+    expect(() =>
+      i18n.registerLocales(resolve(fixturesDir, "theme-like.json")),
+    ).toThrow("looks like a theme object");
+  });
+
+  it("registerTexts rejects theme JSON files", () => {
+    expect(() =>
+      i18n.registerTexts(resolve(fixturesDir, "theme-like.json")),
+    ).toThrow("looks like a theme object");
+  });
+
+  it("registerTexts rejects theme CJS files", () => {
+    expect(() =>
+      i18n.registerTexts(resolve(fixturesDir, "theme-like.cjs")),
+    ).toThrow("looks like a theme object");
+  });
+
+  it("registerLocale accepts a single-locale CJS file path", () => {
+    i18n.registerLocale(
+      "fr",
+      resolve(fixturesDir, "single-locale-texts.cjs"),
+      { activate: true },
+    );
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Select from single CJS file");
   });
 
   it("registerTexts accepts one-argument single-locale depth object and applies active locale", () => {

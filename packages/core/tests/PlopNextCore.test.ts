@@ -119,7 +119,92 @@ describe("PlopNextCore", () => {
         message: "Demo",
         theme: {},
       }),
-    ).rejects.toThrow('Use core.setTheme({ ... }) instead.');
+    ).rejects.toThrow('Use core.setTheme({ ... }) or core.setTheme("./path/to/theme-file") instead.');
+  });
+
+  it("setTheme accepts a JSON file path", () => {
+    const dir = mkdtempSync(join(tmpdir(), "plop-next-theme-"));
+
+    try {
+      const themePath = join(dir, "theme.json");
+      writeFileSync(
+        themePath,
+        JSON.stringify({
+          waitingMessage: "Press {{enterKey}} to open the editor.",
+          password: {
+            maskedText: "[masked from file]",
+          },
+        }),
+        "utf8",
+      );
+
+      core.setDestBasePath(dir);
+      core.setTheme("./theme.json");
+
+      const waitingMessage = core.getTheme().style?.waitingMessage;
+      expect(typeof waitingMessage).toBe("function");
+      expect(waitingMessage?.("Enter")).toBe("Press Enter to open the editor.");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("setTheme accepts a CJS module path with functions", () => {
+    const dir = mkdtempSync(join(tmpdir(), "plop-next-theme-cjs-"));
+
+    try {
+      const themePath = join(dir, "theme.cjs");
+      writeFileSync(
+        themePath,
+        [
+          "module.exports = {",
+          "  style: {",
+          "    answer: (text) => `*${text}*`,",
+          "  },",
+          "  waitingMessage: 'Press {{enterKey}} to open the editor from CJS.',",
+          "};",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+
+      core.setDestBasePath(dir);
+      core.setTheme("./theme.cjs");
+
+      const answer = core.getTheme().style?.answer;
+      expect(typeof answer).toBe("function");
+      expect(answer?.("hello")).toBe("*hello*");
+
+      const waitingMessage = core.getTheme().style?.waitingMessage;
+      expect(typeof waitingMessage).toBe("function");
+      expect(waitingMessage?.("Enter")).toBe("Press Enter to open the editor from CJS.");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("setTheme rejects locale/text JSON files", () => {
+    const dir = mkdtempSync(join(tmpdir(), "plop-next-theme-invalid-"));
+
+    try {
+      const localePath = join(dir, "fr.json");
+      writeFileSync(
+        localePath,
+        JSON.stringify({
+          cli: {
+            selectGenerator: "Choisir",
+          },
+        }),
+        "utf8",
+      );
+
+      core.setDestBasePath(dir);
+      expect(() => core.setTheme("./fr.json")).toThrow(
+        "looks like locales/texts content",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   // ── i18n adapter hooks ──────────────────────────────────────────

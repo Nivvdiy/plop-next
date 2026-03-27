@@ -247,11 +247,19 @@ export class PlopNextRunner {
         }
 
         const g = item;
-        const translatedDescription = this.core.t(
-          `${g.name}.description`,
+        const namespacedDescription = this.core.t(
+          `generators.${g.name}.description`,
           [],
-          g.description || undefined,
+          undefined,
         );
+        const translatedDescription =
+          namespacedDescription !== `generators.${g.name}.description`
+            ? namespacedDescription
+            : this.core.t(
+                `${g.name}.description`,
+                [],
+                g.description || undefined,
+              );
 
         return {
           name:

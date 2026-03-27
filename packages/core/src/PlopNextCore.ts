@@ -1,7 +1,8 @@
 import { ActionRunner } from "./ActionRunner";
 import Handlebars from "handlebars";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import {
   camelCase,
   snakeCase,
@@ -113,6 +114,9 @@ interface GeneratorSeparatorEntry {
 }
 
 type GeneratorEntry = GeneratorDefinitionEntry | GeneratorSeparatorEntry;
+
+const requireModule = createRequire(import.meta.url);
+const MODULE_THEME_FILE_EXTENSIONS = new Set([".js", ".cjs", ".ts", ".cts"]);
 
 export interface RegisterPromptOptions {
   /** Theme selector/extraction config for this custom prompt type. */
@@ -274,7 +278,7 @@ export class PlopNextCore {
     if (Object.prototype.hasOwnProperty.call(config, "theme")) {
       throw new Error(
         `The "theme" prompt field is not supported in plop-next. ` +
-          `Use core.setTheme({ ... }) instead.`,
+          `Use core.setTheme({ ... }) or core.setTheme("./path/to/theme-file") instead.`,
       );
     }
 
@@ -299,13 +303,89 @@ export class PlopNextCore {
     });
   }
 
-  setTheme(theme: PlopNextTheme): this {
-    this.theme = this.cloneTheme(theme);
+  setTheme(theme: PlopNextTheme | string): this {
+    const resolvedTheme = this.resolveThemeInput(theme);
+    this.theme = this.cloneTheme(resolvedTheme);
     return this;
   }
 
   getTheme(): PlopNextTheme {
     return this.cloneTheme(this.resolveTheme());
+  }
+
+  private resolveThemeInput(theme: PlopNextTheme | string): PlopNextTheme {
+    if (typeof theme !== "string") {
+      return theme;
+    }
+
+    const absolutePath = resolve(this.destBasePath, theme);
+    if (!existsSync(absolutePath)) {
+      throw new Error(`Theme file not found: ${absolutePath}`);
+    }
+
+    const extension = extname(absolutePath).toLowerCase();
+    const parsed = extension === ".json"
+      ? this.parseThemeJsonFile(absolutePath)
+      : this.parseThemeModuleFile(absolutePath, extension);
+
+    if (!this.isRecord(parsed)) {
+      throw new Error(`Theme file must contain an object at root: ${absolutePath}`);
+    }
+
+    if (this.looksLikeI18nSource(parsed) && !this.looksLikeThemeSource(parsed)) {
+      throw new Error(
+        `Invalid theme file at ${absolutePath}: looks like locales/texts content. ` +
+          `Use registerLocale(s) or registerTexts for translation files.`,
+      );
+    }
+
+    if (!this.looksLikeThemeSource(parsed)) {
+      throw new Error(
+        `Invalid theme file at ${absolutePath}: no theme fields were detected.`,
+      );
+    }
+
+    return parsed as PlopNextTheme;
+  }
+
+  private parseThemeJsonFile(filePath: string): unknown {
+    try {
+      return JSON.parse(readFileSync(filePath, "utf8"));
+    } catch (error) {
+      throw new Error(
+        `Invalid theme JSON file at ${filePath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private parseThemeModuleFile(filePath: string, extension: string): unknown {
+    if (!MODULE_THEME_FILE_EXTENSIONS.has(extension)) {
+      throw new Error(
+        `Unsupported theme file extension "${extension || "<none>"}" at ${filePath}. ` +
+          `Supported extensions: .json, .js, .cjs, .ts, .cts.`,
+      );
+    }
+
+    let loaded: unknown;
+    try {
+      loaded = requireModule(filePath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Unable to load theme module at ${filePath}: ${message}. ` +
+          `If this file is ESM-only, import it in your plopfile and pass the object directly to setTheme(...).`,
+      );
+    }
+
+    const unwrapped = this.unwrapModuleDefault(loaded);
+    if (typeof unwrapped === "function") {
+      const resolved = unwrapped();
+      return this.unwrapModuleDefault(resolved);
+    }
+
+    return unwrapped;
   }
 
   getActionType(name: string): CustomActionFunction | undefined {
@@ -857,10 +937,18 @@ export class PlopNextCore {
       : {};
 
     if (source.waitingMessage !== undefined) {
-      style.waitingMessage = source.waitingMessage;
+      if (typeof source.waitingMessage === "function") {
+        style.waitingMessage = source.waitingMessage;
+      } else if (typeof source.waitingMessage === "string") {
+        const template = source.waitingMessage;
+        style.waitingMessage = (enterKey: string) =>
+          template
+            .replaceAll("{{enterKey}}", enterKey)
+            .replaceAll("{enterKey}", enterKey);
+      }
     }
 
-    if (source.maskedText !== undefined) {
+    if (typeof source.maskedText === "string") {
       style.maskedText = source.maskedText;
     }
 
@@ -872,7 +960,7 @@ export class PlopNextCore {
       ? { ...normalized.i18n }
       : {};
 
-    if (source.disabledError !== undefined) {
+    if (typeof source.disabledError === "string") {
       i18n.disabledError = source.disabledError;
     }
 
@@ -989,12 +1077,71 @@ export class PlopNextCore {
     return mergedTheme;
   }
 
+  private looksLikeThemeSource(value: UnknownRecord): boolean {
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return false;
+    }
+
+    const rootThemeKeys = new Set([
+      "icon",
+      "prefix",
+      "spinner",
+      "style",
+      "validationFailureMode",
+      "indexMode",
+      "i18n",
+      "keybindings",
+      "plopNext",
+      "waitingMessage",
+      "maskedText",
+      "disabledError",
+    ]);
+
+    return keys.some((key) => rootThemeKeys.has(key) || this.isPromptThemeTypeKey(key));
+  }
+
+  private looksLikeI18nSource(value: UnknownRecord): boolean {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return false;
+    }
+
+    const localeBundle = entries.every(
+      ([key, item]) => this.isLocaleLikeKey(key) && this.isRecord(item),
+    );
+
+    if (localeBundle) {
+      return true;
+    }
+
+    const knownI18nRoots = new Set(["cli", "inquirer", "actions", "errors", "help"]);
+    return entries.some(([key]) => knownI18nRoots.has(key));
+  }
+
+  private isLocaleLikeKey(key: string): boolean {
+    return /^[a-z]{2}(?:[-_][A-Za-z0-9]{2,8})*$/i.test(key);
+  }
+
   private isRecord(value: unknown): value is UnknownRecord {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   private isPromptThemeTypeKey(key: string): key is PromptThemeType {
     return (BUILT_IN_PROMPT_TYPES as readonly string[]).includes(key);
+  }
+
+  private unwrapModuleDefault(value: unknown): unknown {
+    if (!this.isRecord(value)) {
+      return value;
+    }
+
+    const defaultValue = value["default"];
+    if (typeof defaultValue !== "undefined") {
+      return defaultValue;
+    }
+
+    return value;
   }
 
   private cloneUnknown(value: unknown): unknown {
