@@ -6,7 +6,7 @@ import type { LocaleTexts } from "@plop-next/core";
  */
 export const ES_MESSAGES: LocaleTexts = {
   cli: {
-    welcome: "Bienvenido a plop-next! 🚀",
+    title: "Bienvenido a plop-next! 🚀",
     welcomeMessage: null,
     selectGenerator: "Seleccione un generador",
     noGenerators: "No hay generadores registrados. Agreguelos en su plopfile.",

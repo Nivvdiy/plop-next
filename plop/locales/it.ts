@@ -1,7 +1,8 @@
 const Local = {
   cli: {
     welcome: "Benvenuti su Plop-Next! 🚀",
-    welcomeMessage: null,
+    welcomeMessage:
+      "Questa interfaccia è una demo delle capacità di PlopNext. Seleziona un generatore per vedere come può creare codice basato sulle tue risposte.",
     selectGenerator: "Seleziona un generatore",
     noGenerators: "Nessun generatore registrato. Aggiungilo nel tuo plopfile.",
     generatorNotFound: "Generatore non trovato.",
@@ -101,27 +102,11 @@ const Local = {
     lowCompletion: "Mostra lo script di completamento shell (bash|zsh|fish)",
     examples: "Esempi:",
   },
-  generators: {
-    "react-component": {
+  "react-component": {
+    generator: {
+      name: "Componente React",
       description: "Genera un componente React con test (usando template .hbs)",
     },
-    "typescript-utility": {
-      description:
-        "Genera una funzione utility TypeScript (usando template .hbs)",
-    },
-    "backend-service": {
-      description:
-        "Genera un servizio backend con metodi (usando template .hbs)",
-    },
-    "demo-all-prompts": {
-      description: "Demo che mostra tutti i tipi di prompt e funzionalita",
-    },
-    "test-file": {
-      description:
-        "Genera un file di test specializzato con i dati delle risposte",
-    },
-  },
-  "react-component": {
     componentName: {
       message: "Nome del componente (PascalCase)?",
     },
@@ -146,6 +131,11 @@ const Local = {
     },
   },
   "typescript-utility": {
+    generator: {
+      name: "Utility TypeScript",
+      description:
+        "Genera una funzione utility TypeScript (usando template .hbs)",
+    },
     utilityName: {
       message: "Nome funzione utility (camelCase)?",
     },
@@ -181,6 +171,11 @@ const Local = {
     },
   },
   "backend-service": {
+    generator: {
+      name: "Servizio Backend",
+      description:
+        "Genera un servizio backend con metodi (usando template .hbs)",
+    },
     serviceName: {
       message: "Nome del servizio (PascalCase)?",
     },
@@ -200,6 +195,10 @@ const Local = {
     },
   },
   "demo-all-prompts": {
+    generator: {
+      name: "Demo Tutti i Prompt",
+      description: "Demo che mostra tutti i tipi di prompt e funzionalita",
+    },
     projectName: {
       message: "Nome progetto?",
     },
@@ -235,6 +234,11 @@ const Local = {
     },
   },
   "test-file": {
+    generator: {
+      name: "File di Test",
+      description:
+        "Genera un file di test specializzato con i dati delle risposte",
+    },
     testName: {
       message: "Nome file di test?",
     },

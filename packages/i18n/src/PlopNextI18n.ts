@@ -31,7 +31,13 @@ type NamedChoice = { name: string; value: unknown };
 type PromptRecord = PlopPrompt & UnknownRecord;
 
 const requireModule = createRequire(import.meta.url);
-const SUPPORTED_I18N_FILE_EXTENSIONS = new Set([".json", ".js", ".cjs", ".ts", ".cts"]);
+const SUPPORTED_I18N_FILE_EXTENSIONS = new Set([
+  ".json",
+  ".js",
+  ".cjs",
+  ".ts",
+  ".cts",
+]);
 
 export interface RegisterLocaleOptions {
   /** If true, this locale becomes the active locale immediately. */
@@ -53,7 +59,10 @@ export interface RegisterLocaleOptions {
 export class PlopNextI18n {
   private readonly registry = new I18nRegistry();
   private enabled = false;
-  private readonly translatableRules = new Map<string, TranslatableFieldRule[]>();
+  private readonly translatableRules = new Map<
+    string,
+    TranslatableFieldRule[]
+  >();
 
   constructor(private readonly core: PlopNextCore) {
     this.install();
@@ -62,7 +71,8 @@ export class PlopNextI18n {
   install(): this {
     const adapter: I18nAdapter = {
       t: (key, args, fallback) => this.registry.t(key, args, fallback),
-      preparePrompts: (generatorName, prompts) => this.preparePrompts(generatorName, prompts),
+      preparePrompts: (generatorName, prompts) =>
+        this.preparePrompts(generatorName, prompts),
       getWelcomeMessage: () => {
         const value = this.registry.t("cli.welcomeMessage");
         return value === "cli.welcomeMessage" ? null : value;
@@ -113,7 +123,10 @@ export class PlopNextI18n {
     texts: LocaleTexts | string,
     options: RegisterLocaleOptions = {},
   ): this {
-    this.registry.registerLocale(locale, this.resolveSingleLocaleTexts(locale, texts));
+    this.registry.registerLocale(
+      locale,
+      this.resolveSingleLocaleTexts(locale, texts),
+    );
     if (options.activate) {
       this.registry.setActiveLocale(locale);
     }
@@ -162,7 +175,10 @@ export class PlopNextI18n {
     localeOrTexts: LocaleTag | LocaleSource,
     maybeTexts?: LocaleTexts | string,
   ): this {
-    if (typeof localeOrTexts === "string" && typeof maybeTexts !== "undefined") {
+    if (
+      typeof localeOrTexts === "string" &&
+      typeof maybeTexts !== "undefined"
+    ) {
       this.registry.registerTexts(
         localeOrTexts,
         this.resolveSingleLocaleTexts(localeOrTexts, maybeTexts),
@@ -216,7 +232,10 @@ export class PlopNextI18n {
     return this.registry.hasLocale(locale);
   }
 
-  private resolveSingleLocaleTexts(locale: LocaleTag, input: LocaleTexts | string): LocaleTexts {
+  private resolveSingleLocaleTexts(
+    locale: LocaleTag,
+    input: LocaleTexts | string,
+  ): LocaleTexts {
     const resolved = this.resolveLocalesOrSingle(input, locale, "locale");
 
     if (this.isLocalesBundle(resolved)) {
@@ -260,7 +279,9 @@ export class PlopNextI18n {
     fallbackLocale: LocaleTag,
     intent: SourceIntent,
   ): LocalesBundle | LocaleTexts {
-    const absolutePath = isAbsolute(inputPath) ? inputPath : resolve(process.cwd(), inputPath);
+    const absolutePath = isAbsolute(inputPath)
+      ? inputPath
+      : resolve(process.cwd(), inputPath);
 
     if (!existsSync(absolutePath)) {
       throw new Error(`i18n path not found: ${absolutePath}`);
@@ -269,7 +290,9 @@ export class PlopNextI18n {
     const stats = statSync(absolutePath);
     if (stats.isDirectory()) {
       const files = readdirSync(absolutePath)
-        .filter((name: string) => SUPPORTED_I18N_FILE_EXTENSIONS.has(extname(name).toLowerCase()))
+        .filter((name: string) =>
+          SUPPORTED_I18N_FILE_EXTENSIONS.has(extname(name).toLowerCase()),
+        )
         .sort();
 
       if (files.length === 0) {
@@ -283,11 +306,18 @@ export class PlopNextI18n {
       for (const fileName of files) {
         const filePath = resolve(absolutePath, fileName);
         const parsed = this.parseSourceFile(filePath);
-        const normalized = this.normalizeObjectInput(parsed, fallbackLocale, intent);
+        const normalized = this.normalizeObjectInput(
+          parsed,
+          fallbackLocale,
+          intent,
+        );
 
         if (this.isLocalesBundle(normalized)) {
           for (const [locale, texts] of Object.entries(normalized)) {
-            bundle[locale] = this.mergePlainObjects(bundle[locale] ?? {}, texts);
+            bundle[locale] = this.mergePlainObjects(
+              bundle[locale] ?? {},
+              texts,
+            );
           }
           continue;
         }
@@ -300,8 +330,13 @@ export class PlopNextI18n {
           );
         }
 
-        const targetLocale = this.isLocaleLikeKey(locale) ? locale : fallbackLocale;
-        bundle[targetLocale] = this.mergePlainObjects(bundle[targetLocale] ?? {}, normalized);
+        const targetLocale = this.isLocaleLikeKey(locale)
+          ? locale
+          : fallbackLocale;
+        bundle[targetLocale] = this.mergePlainObjects(
+          bundle[targetLocale] ?? {},
+          normalized,
+        );
       }
 
       return bundle;
@@ -358,7 +393,10 @@ export class PlopNextI18n {
     }
 
     const unwrapped = this.unwrapModuleDefault(loaded);
-    const value = typeof unwrapped === "function" ? this.unwrapModuleDefault(unwrapped()) : unwrapped;
+    const value =
+      typeof unwrapped === "function"
+        ? this.unwrapModuleDefault(unwrapped())
+        : unwrapped;
 
     if (!this.isPlainObject(value)) {
       throw new Error(`i18n module must export an object at root: ${filePath}`);
@@ -437,6 +475,7 @@ export class PlopNextI18n {
       "disabledError",
       "input",
       "select",
+      "generator-select",
       "list",
       "checkbox",
       "confirm",
@@ -473,10 +512,7 @@ export class PlopNextI18n {
   ): LocaleTexts {
     const out: LocaleTexts = { ...target };
     for (const [key, value] of Object.entries(source)) {
-      if (
-        this.isPlainObject(value) &&
-        this.isPlainObject(out[key])
-      ) {
+      if (this.isPlainObject(value) && this.isPlainObject(out[key])) {
         out[key] = this.mergePlainObjects(out[key] as LocaleTexts, value);
       } else {
         out[key] = value;
@@ -486,8 +522,8 @@ export class PlopNextI18n {
   }
 
   private normalize(value: string): string {
-    const [withoutEncoding = ''] = value.split('.');
-    const [lang = ''] = withoutEncoding.split(/[_-]/);
+    const [withoutEncoding = ""] = value.split(".");
+    const [lang = ""] = withoutEncoding.split(/[_-]/);
     return lang.toLowerCase();
   }
 
@@ -508,12 +544,24 @@ export class PlopNextI18n {
   private applyInquirerLocale(): void {
     const locale = this.buildInquirerLocale();
     const localized = createLocalizedPrompts(locale);
-    this.core.registerPrompt(createConfirmHandler(localized.confirm as unknown as InquirerPromptFn));
-    this.core.registerPrompt(createSelectHandler(localized.select as unknown as InquirerPromptFn));
-    this.core.registerPrompt(createCheckboxHandler(localized.checkbox as unknown as InquirerPromptFn));
-    this.core.registerPrompt(createSearchHandler(localized.search as unknown as InquirerPromptFn));
-    this.core.registerPrompt(createEditorHandler(localized.editor as unknown as InquirerPromptFn));
-    this.core.registerPrompt(createPasswordHandler(localized.password as unknown as InquirerPromptFn));
+    this.core.registerPrompt(
+      createConfirmHandler(localized.confirm as unknown as InquirerPromptFn),
+    );
+    this.core.registerPrompt(
+      createSelectHandler(localized.select as unknown as InquirerPromptFn),
+    );
+    this.core.registerPrompt(
+      createCheckboxHandler(localized.checkbox as unknown as InquirerPromptFn),
+    );
+    this.core.registerPrompt(
+      createSearchHandler(localized.search as unknown as InquirerPromptFn),
+    );
+    this.core.registerPrompt(
+      createEditorHandler(localized.editor as unknown as InquirerPromptFn),
+    );
+    this.core.registerPrompt(
+      createPasswordHandler(localized.password as unknown as InquirerPromptFn),
+    );
   }
 
   private buildInquirerLocale(): InquirerLocale {
@@ -547,7 +595,11 @@ export class PlopNextI18n {
       },
       editor: {
         waitingMessage: (enterKey: string) =>
-          this.registry.t("inquirer.editor.waitingMessage", [enterKey], `Press ${enterKey} to launch your preferred editor.`),
+          this.registry.t(
+            "inquirer.editor.waitingMessage",
+            [enterKey],
+            `Press ${enterKey} to launch your preferred editor.`,
+          ),
       },
       password: {
         maskedText: t("password.maskedText", "[input is masked]"),
@@ -555,9 +607,7 @@ export class PlopNextI18n {
     };
   }
 
-  
   private detectLocale(): LocaleTag {
-
     // 1. LANGUAGE (GNU/Linux colon-separated preference list)
     for (const seg of (process.env["LANGUAGE"] ?? "").split(":")) {
       const lang = this.normalize(seg);
@@ -572,7 +622,9 @@ export class PlopNextI18n {
 
     // 5. Intl API (cross-platform / primary Windows path)
     try {
-      const lang = this.normalize(Intl.DateTimeFormat().resolvedOptions().locale);
+      const lang = this.normalize(
+        Intl.DateTimeFormat().resolvedOptions().locale,
+      );
       if (lang) return lang;
     } catch {
       // ignore
@@ -581,7 +633,10 @@ export class PlopNextI18n {
     return "en";
   }
 
-  private preparePrompts(generatorName: string, prompts: PlopPrompt[]): PlopPrompt[] {
+  private preparePrompts(
+    generatorName: string,
+    prompts: PlopPrompt[],
+  ): PlopPrompt[] {
     if (!this.enabled) {
       return prompts;
     }
@@ -607,9 +662,15 @@ export class PlopNextI18n {
       const promptRecord = prompt as PromptRecord;
       const choices = promptRecord["choices"];
       if (Array.isArray(choices)) {
-        resolvedPromptRecord["choices"] = this.translateChoices(generatorName, prompt.name, choices);
+        resolvedPromptRecord["choices"] = this.translateChoices(
+          generatorName,
+          prompt.name,
+          choices,
+        );
       } else if (typeof choices === "function") {
-        resolvedPromptRecord["choices"] = async (answers: Record<string, unknown>) => {
+        resolvedPromptRecord["choices"] = async (
+          answers: Record<string, unknown>,
+        ) => {
           const rawChoices = await choices(answers);
           return this.translateChoices(generatorName, prompt.name, rawChoices);
         };
@@ -643,7 +704,11 @@ export class PlopNextI18n {
       // Apply custom translatable field rules registered for this prompt type.
       const customRules = this.translatableRules.get(prompt.type) ?? [];
       for (const rule of customRules) {
-        this.applyRule(resolvedPromptRecord, rule, `${generatorName}.${prompt.name}`);
+        this.applyRule(
+          resolvedPromptRecord,
+          rule,
+          `${generatorName}.${prompt.name}`,
+        );
       }
 
       return resolvedPrompt;
@@ -756,15 +821,22 @@ export class PlopNextI18n {
 
     const hasWildcard = rule.path.includes("#");
     // Normalise: "path" without '#' + idField  →  treat path as array container
-    const segments = !hasWildcard && rule.idField
-      ? [...rule.path.split("."), "#"]
-      : rule.path.split(".");
+    const segments =
+      !hasWildcard && rule.idField
+        ? [...rule.path.split("."), "#"]
+        : rule.path.split(".");
 
     const firstSeg = segments[0];
     if (!firstSeg) return;
 
     const original = promptRecord[firstSeg];
-    const result = this.walkPath(original, segments, 1, `${keyBase}.${firstSeg}`, rule);
+    const result = this.walkPath(
+      original,
+      segments,
+      1,
+      `${keyBase}.${firstSeg}`,
+      rule,
+    );
     if (result !== original) {
       promptRecord[firstSeg] = result;
     }
@@ -822,10 +894,17 @@ export class PlopNextI18n {
     }
 
     // Regular segment: navigate into a plain object property.
-    if (!current || typeof current !== "object" || Array.isArray(current)) return current;
+    if (!current || typeof current !== "object" || Array.isArray(current))
+      return current;
     const record = current as Record<string, unknown>;
     const next = record[segment];
-    const newNext = this.walkPath(next, segments, idx + 1, `${keyPath}.${segment}`, rule);
+    const newNext = this.walkPath(
+      next,
+      segments,
+      idx + 1,
+      `${keyPath}.${segment}`,
+      rule,
+    );
     if (newNext === next) return current;
     return { ...record, [segment]: newNext };
   }

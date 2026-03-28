@@ -1,24 +1,14 @@
 const Text = {
-  generators: {
-    "react-component": {
-      description: "Generer un composant React avec tests (via template .hbs)",
-    },
-    "typescript-utility": {
-      description:
-        "Generer une fonction utilitaire TypeScript (via template .hbs)",
-    },
-    "backend-service": {
-      description:
-        "Generer un service backend avec methodes (via template .hbs)",
-    },
-    "demo-all-prompts": {
-      description: "Demo montrant tous les types de prompts et fonctionnalites",
-    },
-    "test-file": {
-      description: "Generer un fichier de test specialise avec les reponses",
-    },
+  cli: {
+    title: "Bienvenue dans le générateur de code PlopNext !",
+    welcomeMessage:
+      "Cette interface est une demo des capacités de PlopNext. Sélectionnez un générateur pour voir comment il peut créer du code basé sur vos réponses.",
   },
   "react-component": {
+    generator: {
+      name: "Composant React",
+      description: "Generer un composant React avec tests (via template .hbs)",
+    },
     componentName: {
       message: "Nom du composant (PascalCase) ?",
     },
@@ -43,6 +33,11 @@ const Text = {
     },
   },
   "typescript-utility": {
+    generator: {
+      name: "Utilitaire TypeScript",
+      description:
+        "Generer une fonction utilitaire TypeScript (via template .hbs)",
+    },
     utilityName: {
       message: "Nom de la fonction utilitaire (camelCase) ?",
     },
@@ -78,6 +73,11 @@ const Text = {
     },
   },
   "backend-service": {
+    generator: {
+      name: "Service Backend",
+      description:
+        "Generer un service backend avec methodes (via template .hbs)",
+    },
     serviceName: {
       message: "Nom du service (PascalCase) ?",
     },
@@ -97,6 +97,10 @@ const Text = {
     },
   },
   "demo-all-prompts": {
+    generator: {
+      name: "Demo Tous les Prompts",
+      description: "Demo montrant tous les types de prompts et fonctionnalites",
+    },
     projectName: {
       message: "Nom du projet ?",
     },
@@ -132,6 +136,10 @@ const Text = {
     },
   },
   "test-file": {
+    generator: {
+      name: "Fichier de Test",
+      description: "Generer un fichier de test specialise avec les reponses",
+    },
     testName: {
       message: "Nom du fichier de test ?",
     },

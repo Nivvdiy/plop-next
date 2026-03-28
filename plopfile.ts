@@ -28,16 +28,8 @@ function joinArray(items: string[], separator: string = ", "): string {
 }
 
 export default function plop(plop: PlopNext) {
-  plop.setWelcomeMessage(
-    styleText(
-      ["bold", "cyan"],
-      "🎉 Welcome to plop-next comprehensive demo!\n",
-    ) +
-      styleText(
-        "gray",
-        "This demo showcases multiple generators with templates, helpers, and file generation.",
-      ),
-  );
+
+  plop.showWelcomeMessage();
 
   // ==================
   // 1. CONFIGURATION & HELPERS

@@ -1,25 +1,13 @@
 const Text = {
-  generators: {
-    "react-component": {
+  welcome: "Welcome to the PlopNext code generator!",
+  welcomeMessage:
+    "This interactive CLI is a demo of PlopNext's capabilities. Select a generator to see how it can scaffold code based on your input.",
+  "react-component": {
+    generator: {
+      name: "React Component",
       description:
         "Generate a React component with tests (using .hbs templates)",
     },
-    "typescript-utility": {
-      description:
-        "Generate a TypeScript utility function (using .hbs template)",
-    },
-    "backend-service": {
-      description:
-        "Generate a backend service with methods (using .hbs template)",
-    },
-    "demo-all-prompts": {
-      description: "Demo showing all prompt types and functionality",
-    },
-    "test-file": {
-      description: "Generate specialized test file with response data",
-    },
-  },
-  "react-component": {
     componentName: {
       message: "Component name (PascalCase)?",
     },
@@ -44,6 +32,11 @@ const Text = {
     },
   },
   "typescript-utility": {
+    generator: {
+      name: "TypeScript Utility",
+      description:
+        "Generate a TypeScript utility function (using .hbs template)",
+    },
     utilityName: {
       message: "Utility function name (camelCase)?",
     },
@@ -79,6 +72,11 @@ const Text = {
     },
   },
   "backend-service": {
+    generator: {
+      name: "Backend Service",
+      description:
+        "Generate a backend service with methods (using .hbs template)",
+    },
     serviceName: {
       message: "Service name (PascalCase)?",
     },
@@ -98,6 +96,10 @@ const Text = {
     },
   },
   "demo-all-prompts": {
+    generator: {
+      name: "Demo All Prompts",
+      description: "Demo showing all prompt types and functionality",
+    },
     projectName: {
       message: "Project name?",
     },
@@ -133,6 +135,10 @@ const Text = {
     },
   },
   "test-file": {
+    generator: {
+      name: "Test File",
+      description: "Generate specialized test file with response data",
+    },
     testName: {
       message: "Test file name?",
     },

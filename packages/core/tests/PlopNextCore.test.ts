@@ -9,6 +9,7 @@ type ThemeStyleProbe = {
   style?: {
     message?: unknown;
     answer?: unknown;
+    description?: unknown;
   };
 };
 import { GeneratorMenuItem, GeneratorListItem } from "../dist";
@@ -112,6 +113,81 @@ describe("PlopNextCore", () => {
     expect(answerStyle?.("hello")).toBe("A:hello");
   });
 
+  it("generator-select uses select theme when no dedicated override exists", async () => {
+    let receivedTheme: unknown;
+
+    core.registerPrompt({
+      types: ["generator-select"],
+      async ask(_type, config) {
+        receivedTheme = config.theme;
+        return "ok";
+      },
+    });
+
+    core.setTheme({
+      select: {
+        style: {
+          description: (text: string) => `S:${text}`,
+        },
+      },
+    });
+
+    const answer = await core.askPrompt("generator-select", {
+      name: "__generator",
+      message: "Select generator",
+      choices: [{ name: "Demo", value: "demo" }],
+    });
+
+    expect(answer).toBe("ok");
+    const style = (receivedTheme as ThemeStyleProbe).style;
+    expect(typeof style?.description).toBe("function");
+
+    const descriptionStyle = style?.description as
+      | ((text: string) => string)
+      | undefined;
+    expect(descriptionStyle?.("demo")).toBe("S:demo");
+  });
+
+  it("generator-select theme can override select theme independently", async () => {
+    let receivedTheme: unknown;
+
+    core.registerPrompt({
+      types: ["generator-select"],
+      async ask(_type, config) {
+        receivedTheme = config.theme;
+        return "ok";
+      },
+    });
+
+    core.setTheme({
+      select: {
+        style: {
+          description: (text: string) => `S:${text}`,
+        },
+      },
+      "generator-select": {
+        style: {
+          description: (text: string) => `G:${text}`,
+        },
+      },
+    });
+
+    const answer = await core.askPrompt("generator-select", {
+      name: "__generator",
+      message: "Select generator",
+      choices: [{ name: "Demo", value: "demo" }],
+    });
+
+    expect(answer).toBe("ok");
+    const style = (receivedTheme as ThemeStyleProbe).style;
+    expect(typeof style?.description).toBe("function");
+
+    const descriptionStyle = style?.description as
+      | ((text: string) => string)
+      | undefined;
+    expect(descriptionStyle?.("demo")).toBe("G:demo");
+  });
+
   it("rejects prompt-level theme field and guides to setTheme", async () => {
     await expect(
       core.askPrompt("input", {
@@ -119,7 +195,9 @@ describe("PlopNextCore", () => {
         message: "Demo",
         theme: {},
       }),
-    ).rejects.toThrow('Use core.setTheme({ ... }) or core.setTheme("./path/to/theme-file") instead.');
+    ).rejects.toThrow(
+      'Use core.setTheme({ ... }) or core.setTheme("./path/to/theme-file") instead.',
+    );
   });
 
   it("setTheme accepts a JSON file path", () => {
@@ -177,7 +255,9 @@ describe("PlopNextCore", () => {
 
       const waitingMessage = core.getTheme().style?.waitingMessage;
       expect(typeof waitingMessage).toBe("function");
-      expect(waitingMessage?.("Enter")).toBe("Press Enter to open the editor from CJS.");
+      expect(waitingMessage?.("Enter")).toBe(
+        "Press Enter to open the editor from CJS.",
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -228,7 +308,9 @@ describe("PlopNextCore", () => {
   });
 
   it("registerLocale is a no-op without plugin and stays chainable", () => {
-    expect(core.registerLocale("custom", { cli: { welcome: "Custom welcome" } })).toBe(core);
+    expect(
+      core.registerLocale("custom", { cli: { welcome: "Custom welcome" } }),
+    ).toBe(core);
     expect(core.getLocale()).toBe("en");
   });
 
@@ -299,8 +381,12 @@ describe("PlopNextCore", () => {
       },
     };
 
-    const tacosActions = await core.resolveActions(config.actions, { wantTacos: true });
-    const burritosActions = await core.resolveActions(config.actions, { wantTacos: false });
+    const tacosActions = await core.resolveActions(config.actions, {
+      wantTacos: true,
+    });
+    const burritosActions = await core.resolveActions(config.actions, {
+      wantTacos: false,
+    });
 
     expect(tacosActions).toHaveLength(1);
     expect(burritosActions).toHaveLength(1);
@@ -311,12 +397,24 @@ describe("PlopNextCore", () => {
   // ── built-in helpers ────────────────────────────────────────────
 
   it("registers case modifier helpers by default", () => {
-    expect(core.renderString("{{camelCase value}}", { value: "My component" })).toBe("myComponent");
-    expect(core.renderString("{{snakeCase value}}", { value: "My component" })).toBe("my_component");
-    expect(core.renderString("{{dotCase value}}", { value: "My component" })).toBe("my.component");
-    expect(core.renderString("{{pathCase value}}", { value: "My component" })).toBe("my/component");
-    expect(core.renderString("{{constantCase value}}", { value: "My component" })).toBe("MY_COMPONENT");
-    expect(core.renderString("{{titleCase value}}", { value: "my component" })).toBe("My Component");
+    expect(
+      core.renderString("{{camelCase value}}", { value: "My component" }),
+    ).toBe("myComponent");
+    expect(
+      core.renderString("{{snakeCase value}}", { value: "My component" }),
+    ).toBe("my_component");
+    expect(
+      core.renderString("{{dotCase value}}", { value: "My component" }),
+    ).toBe("my.component");
+    expect(
+      core.renderString("{{pathCase value}}", { value: "My component" }),
+    ).toBe("my/component");
+    expect(
+      core.renderString("{{constantCase value}}", { value: "My component" }),
+    ).toBe("MY_COMPONENT");
+    expect(
+      core.renderString("{{titleCase value}}", { value: "my component" }),
+    ).toBe("My Component");
   });
 
   it("supports dash/kebab and proper/pascal aliases", () => {

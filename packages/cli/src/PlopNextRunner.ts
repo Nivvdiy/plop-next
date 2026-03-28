@@ -74,14 +74,35 @@ export class PlopNextRunner {
       chosen = generatorName;
     } else {
       // Filter out separators to find actual generators
-      const generators = list.filter((item) => !("type" in item) || item.type !== "separator");
+      const generators = list.filter(
+        (item) => !("type" in item) || item.type !== "separator",
+      );
       if (generators.length === 1 && generators[0] && "name" in generators[0]) {
         chosen = generators[0].name;
       } else {
-        const welcomeMessage = this.core.getWelcomeMessage();
-        if (welcomeMessage) {
-          console.log(theme.welcome(welcomeMessage));
+        const showTitle = this.core.isTitleShown();
+        if (showTitle) {
+          const title = this.core.t(
+            "cli.title",
+            [],
+            "Please choose a generator",
+          );
+          if (title && title !== "") {
+            console.log(theme.menuTitle(title));
+          }
         }
+        const showWelcome = this.core.isWelcomeMessageShown();
+        if (showWelcome) {
+          const welcomeMessage = this.core.getWelcomeMessage();
+          if (
+            welcomeMessage &&
+            welcomeMessage !== "" &&
+            welcomeMessage !== null
+          ) {
+            console.log(theme.welcome(welcomeMessage));
+          }
+        }
+        console.log();
 
         chosen = await this.askGeneratorSelection(list);
       }
@@ -127,7 +148,10 @@ export class PlopNextRunner {
       const promptType = typeof type === "string" ? type : "input";
 
       if (typeof promptName !== "string" || promptName.length === 0) {
-        throw new InvalidPromptError(String(promptName), "Prompt name must be a non-empty string.");
+        throw new InvalidPromptError(
+          String(promptName),
+          "Prompt name must be a non-empty string.",
+        );
       }
 
       // Skip if answer already exists and askAnswered is not true
@@ -141,17 +165,16 @@ export class PlopNextRunner {
 
       if (typeof validateFn === "function") {
         runtimeConfig["validate"] = (value: unknown) =>
-          (validateFn as (value: unknown, answers?: Record<string, unknown>) => unknown)(
-            value,
-            answers,
-          );
+          (
+            validateFn as (
+              value: unknown,
+              answers?: Record<string, unknown>,
+            ) => unknown
+          )(value, answers);
       }
 
       if (typeof sourceFn === "function") {
-        runtimeConfig["source"] = (
-          term: string | undefined,
-          opt: unknown,
-        ) =>
+        runtimeConfig["source"] = (term: string | undefined, opt: unknown) =>
           (
             sourceFn as (
               term: string | undefined,
@@ -165,7 +188,12 @@ export class PlopNextRunner {
 
       let value: unknown;
       if (typeof bypass !== "undefined") {
-        value = this.coerceBypassValue(promptType, bypass, runtimeConfig, promptName);
+        value = this.coerceBypassValue(
+          promptType,
+          bypass,
+          runtimeConfig,
+          promptName,
+        );
       } else {
         // Dynamically import the right inquirer prompt.
         value = await this.askPrompt(promptType, promptName, runtimeConfig);
@@ -193,19 +221,30 @@ export class PlopNextRunner {
         continue;
       }
 
-      const labelRaw = this.core.getActionTypeDisplay(step.type, this.opts.showTypeNames);
-      const label = this.opts.showTypeNames ? pc.dim(labelRaw) : this.colorizeActionLabel(step.type, labelRaw);
-      const target = this.core.formatActionTargetForDisplay(step.path ?? step.message);
+      const labelRaw = this.core.getActionTypeDisplay(
+        step.type,
+        this.opts.showTypeNames,
+      );
+      const label = this.opts.showTypeNames
+        ? pc.dim(labelRaw)
+        : this.colorizeActionLabel(step.type, labelRaw);
+      const target = this.core.formatActionTargetForDisplay(
+        step.path ?? step.message,
+      );
       const text = `${label} ${pc.dim(target)}`;
 
       if (step.status === "success") {
         if (showProgress) {
-          createSpinner("Running action").success({ text: theme.success(text) });
+          createSpinner("Running action").success({
+            text: theme.success(text),
+          });
         } else {
           console.log(theme.success(text));
         }
       } else if (showProgress) {
-        createSpinner("Running action").error({ text: theme.error(step.message) });
+        createSpinner("Running action").error({
+          text: theme.error(step.message),
+        });
       } else {
         console.error(theme.error(step.message));
       }
@@ -247,33 +286,23 @@ export class PlopNextRunner {
         }
 
         const g = item;
-        const namespacedDescription = this.core.t(
-          `generators.${g.name}.description`,
-          [],
-          undefined,
+        const displayName = this.resolveGeneratorDisplayName(g.name);
+        const translatedDescription = this.resolveGeneratorDescription(
+          g.name,
+          g.description,
         );
-        const translatedDescription =
-          namespacedDescription !== `generators.${g.name}.description`
-            ? namespacedDescription
-            : this.core.t(
-                `${g.name}.description`,
-                [],
-                g.description || undefined,
-              );
 
         return {
-          name:
-            translatedDescription && translatedDescription !== `${g.name}.description`
-              ? `${g.name} - ${translatedDescription}`
-              : g.name,
+          name: displayName,
           value: g.name,
+          description: translatedDescription ?? null,
         };
       }),
       new Separator(),
     ];
 
     try {
-      const selected = await this.core.askPrompt("select", {
+      const selected = await this.core.askPrompt("generator-select", {
         name: "__generator",
         message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
         choices,
@@ -281,7 +310,10 @@ export class PlopNextRunner {
       });
 
       if (typeof selected !== "string" || selected.length === 0) {
-        throw new InvalidPromptError("__generator", "Generator selection returned an invalid value.");
+        throw new InvalidPromptError(
+          "__generator",
+          "Generator selection returned an invalid value.",
+        );
       }
 
       return selected;
@@ -311,12 +343,16 @@ export class PlopNextRunner {
     }
 
     if (typeof prompt.default === "function") {
-      resolved["default"] = await (prompt.default as (a: Record<string, unknown>) => Promise<unknown>)(answers);
+      resolved["default"] = await (
+        prompt.default as (a: Record<string, unknown>) => Promise<unknown>
+      )(answers);
     }
 
     const rawChoices = promptRecord["choices"];
     if (typeof rawChoices === "function") {
-      resolved["choices"] = await (rawChoices as (a: Record<string, unknown>) => Promise<unknown>)(answers);
+      resolved["choices"] = await (
+        rawChoices as (a: Record<string, unknown>) => Promise<unknown>
+      )(answers);
     }
 
     return resolved;
@@ -343,8 +379,57 @@ export class PlopNextRunner {
     return raw;
   }
 
-  private isGeneratorListItem(item: GeneratorMenuItem): item is GeneratorListItem {
+  private isGeneratorListItem(
+    item: GeneratorMenuItem,
+  ): item is GeneratorListItem {
     return "name" in item && typeof item.name === "string";
+  }
+
+  private resolveGeneratorDisplayName(generatorName: string): string {
+    const scopedKey = `${generatorName}.generator.name`;
+    const scoped = this.core.t(scopedKey, [], undefined);
+    if (scoped !== scopedKey) {
+      return scoped;
+    }
+
+    const namespacedKey = `generators.${generatorName}.name`;
+    const namespaced = this.core.t(namespacedKey, [], undefined);
+    if (namespaced !== namespacedKey) {
+      return namespaced;
+    }
+
+    const legacyKey = `${generatorName}.name`;
+    const legacy = this.core.t(legacyKey, [], undefined);
+    if (legacy !== legacyKey) {
+      return legacy;
+    }
+
+    return generatorName;
+  }
+
+  private resolveGeneratorDescription(
+    generatorName: string,
+    fallback?: string,
+  ): string | undefined {
+    const scopedKey = `${generatorName}.generator.description`;
+    const scoped = this.core.t(scopedKey, [], undefined);
+    if (scoped !== scopedKey) {
+      return scoped;
+    }
+
+    const namespacedKey = `generators.${generatorName}.description`;
+    const namespaced = this.core.t(namespacedKey, [], undefined);
+    if (namespaced !== namespacedKey) {
+      return namespaced;
+    }
+
+    const legacyKey = `${generatorName}.description`;
+    const legacy = this.core.t(legacyKey, [], fallback);
+    if (legacy !== legacyKey) {
+      return legacy;
+    }
+
+    return undefined;
   }
 
   private coerceBypassValue(
@@ -357,7 +442,12 @@ export class PlopNextRunner {
       const normalized = raw.trim().toLowerCase();
       if (["1", "y", "yes", "t", "true"].includes(normalized)) return true;
       if (["0", "n", "no", "f", "false"].includes(normalized)) return false;
-      throw new BypassParseError(promptName, promptType, raw, `Expected boolean value (y/n), got "${raw}"`);
+      throw new BypassParseError(
+        promptName,
+        promptType,
+        raw,
+        `Expected boolean value (y/n), got "${raw}"`,
+      );
     }
 
     if (promptType === "number") {
@@ -365,11 +455,26 @@ export class PlopNextRunner {
       if (Number.isFinite(num)) {
         return num;
       }
-      throw new BypassParseError(promptName, promptType, raw, `Expected number, got "${raw}"`);
+      throw new BypassParseError(
+        promptName,
+        promptType,
+        raw,
+        `Expected number, got "${raw}"`,
+      );
     }
 
-    if (promptType === "list" || promptType === "select" || promptType === "rawlist" || promptType === "expand") {
-      return this.resolveChoiceBypassValue(raw, inquirerConfig, promptName, promptType);
+    if (
+      promptType === "list" ||
+      promptType === "select" ||
+      promptType === "rawlist" ||
+      promptType === "expand"
+    ) {
+      return this.resolveChoiceBypassValue(
+        raw,
+        inquirerConfig,
+        promptName,
+        promptType,
+      );
     }
 
     if (promptType === "checkbox") {
@@ -378,7 +483,12 @@ export class PlopNextRunner {
         .map((part) => part.trim())
         .filter((part) => part.length > 0);
       return tokens.map((token) =>
-        this.resolveChoiceBypassValue(token, inquirerConfig, promptName, promptType),
+        this.resolveChoiceBypassValue(
+          token,
+          inquirerConfig,
+          promptName,
+          promptType,
+        ),
       );
     }
 
@@ -412,11 +522,19 @@ export class PlopNextRunner {
     });
 
     const asNumber = Number(raw);
-    if (Number.isInteger(asNumber) && asNumber >= 1 && asNumber <= choiceList.length) {
+    if (
+      Number.isInteger(asNumber) &&
+      asNumber >= 1 &&
+      asNumber <= choiceList.length
+    ) {
       return this.choiceValue(choiceList[asNumber - 1]);
     }
 
-    if (Number.isInteger(asNumber) && asNumber >= 0 && asNumber < choiceList.length) {
+    if (
+      Number.isInteger(asNumber) &&
+      asNumber >= 0 &&
+      asNumber < choiceList.length
+    ) {
       return this.choiceValue(choiceList[asNumber]);
     }
 
@@ -428,15 +546,24 @@ export class PlopNextRunner {
 
       const record = choice as UnknownRecord;
 
-      if (typeof record["value"] !== "undefined" && String(record["value"]) === raw) {
+      if (
+        typeof record["value"] !== "undefined" &&
+        String(record["value"]) === raw
+      ) {
         return record["value"];
       }
 
-      if (typeof record["key"] !== "undefined" && String(record["key"]) === raw) {
+      if (
+        typeof record["key"] !== "undefined" &&
+        String(record["key"]) === raw
+      ) {
         return this.choiceValue(record);
       }
 
-      if (typeof record["name"] !== "undefined" && String(record["name"]) === raw) {
+      if (
+        typeof record["name"] !== "undefined" &&
+        String(record["name"]) === raw
+      ) {
         return this.choiceValue(record);
       }
     }
@@ -504,7 +631,12 @@ export class PlopNextRunner {
 
   private colorizeActionLabel(type: string, label: string): string {
     if (type === "function") return pc.yellow(label);
-    if (type === "add" || type === "addMany" || type === "append" || type === "skip") {
+    if (
+      type === "add" ||
+      type === "addMany" ||
+      type === "append" ||
+      type === "skip"
+    ) {
       return pc.green(label);
     }
     if (type === "modify") {
@@ -514,6 +646,7 @@ export class PlopNextRunner {
   }
 
   private getCliTheme(): {
+    menuTitle: (text: string) => string;
     welcome: (text: string) => string;
     generatorTitle: (text: string) => string;
     generatorDescription: (text: string) => string;
@@ -525,9 +658,12 @@ export class PlopNextRunner {
     const theme = this.core.getTheme().plopNext;
 
     return {
+      menuTitle: theme?.menuTitle ?? ((text: string) => pc.bold(text)),
       welcome: theme?.welcome ?? ((text: string) => pc.dim(text)),
-      generatorTitle: theme?.generatorMenu?.title ?? ((text: string) => pc.bold(text)),
-      generatorDescription: theme?.generatorMenu?.description ?? ((text: string) => pc.dim(text)),
+      generatorTitle:
+        theme?.generatorMenu?.title ?? ((text: string) => pc.bold(text)),
+      generatorDescription:
+        theme?.generatorMenu?.description ?? ((text: string) => pc.dim(text)),
       success: theme?.actionLog?.success ?? ((text: string) => pc.green(text)),
       error: theme?.actionLog?.error ?? ((text: string) => pc.red(text)),
       skipped: theme?.actionLog?.skipped ?? ((text: string) => pc.yellow(text)),

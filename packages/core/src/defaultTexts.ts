@@ -6,7 +6,7 @@ import type { HelpTexts, LocaleTexts } from "./types";
  */
 export const CORE_DEFAULT_TEXTS: LocaleTexts = {
   cli: {
-    welcome: "Welcome to plop-next! 🚀",
+    title: "Welcome to plop-next! 🚀",
     welcomeMessage: null,
     selectGenerator: "Please choose a generator",
     noGenerators: "No generators registered. Add some to your plopfile.",

@@ -89,10 +89,10 @@ describe("ActionRunner", () => {
 
   // ── interpolation ────────────────────────────────────────────────
 
-  it("leaves unresolved placeholders unchanged", async () => {
+  it("replaces unresolved placeholders with an empty string", async () => {
     const path = join(tmpDir, "tmpl.txt");
     await runner.run("add", { type: "add", path, template: "{{a}} {{b}}" }, { a: "hello" });
     const content = await readFile(path, "utf8");
-    expect(content).toBe("hello {{b}}");
+    expect(content).toBe("hello ");
   });
 });

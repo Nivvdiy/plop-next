@@ -6,7 +6,7 @@ import type { LocaleTexts } from "@plop-next/core";
  */
 export const ZH_MESSAGES: LocaleTexts = {
   cli: {
-    welcome: "欢迎使用 plop-next! 🚀",
+    title: "欢迎使用 plop-next! 🚀",
     welcomeMessage: null,
     selectGenerator: "请选择一个生成器",
     noGenerators: "未注册任何生成器。请在您的 plopfile 中添加。",

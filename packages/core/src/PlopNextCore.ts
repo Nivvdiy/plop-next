@@ -88,13 +88,20 @@ export interface I18nAdapter {
     options?: RegisterLocaleOptions,
   ): void;
   registerTexts?(
-    localeOrTexts: LocaleTag | Record<string, LocaleTexts> | LocaleTexts | string,
+    localeOrTexts:
+      | LocaleTag
+      | Record<string, LocaleTexts>
+      | LocaleTexts
+      | string,
     maybeTexts?: LocaleTexts | string,
   ): void;
   registerText?(locale: LocaleTag, path: string, text: unknown): void;
   setLocale?(locale: LocaleTag): void;
   getLocale?(): LocaleTag;
-  registerTranslatableFields?(promptType: string, rules: TranslatableFieldRule[]): void;
+  registerTranslatableFields?(
+    promptType: string,
+    rules: TranslatableFieldRule[],
+  ): void;
 }
 
 /**
@@ -133,10 +140,15 @@ export class PlopNextCore {
   private readonly promptTypes = new Map<string, PromptRenderer>();
   /** Typed prompt handlers registered via registerPrompt(handler). */
   private readonly promptHandlerRegistry = new PromptHandlerRegistry();
-  private readonly promptThemeSelectorRegistry = new PromptThemeSelectorRegistry();
+  private readonly promptThemeSelectorRegistry =
+    new PromptThemeSelectorRegistry();
   private i18nAdapter?: I18nAdapter;
-  private readonly translatableFieldRules = new Map<string, TranslatableFieldRule[]>();
-  private welcomeMessage: string | null = null;
+  private readonly translatableFieldRules = new Map<
+    string,
+    TranslatableFieldRule[]
+  >();
+  private showWelcomeMessageFlag: boolean = false;
+  private showTitleFlag: boolean = true;
   private generatorPageSize = 7;
   private plopfilePath?: string;
   private destBasePath: string = process.cwd();
@@ -231,11 +243,17 @@ export class PlopNextCore {
         this.promptThemeSelectorRegistry.registerWithDefault(nameOrHandler);
       }
 
-      if (options?.translatableFields && options.translatableFields.length > 0) {
+      if (
+        options?.translatableFields &&
+        options.translatableFields.length > 0
+      ) {
         const existing = this.translatableFieldRules.get(nameOrHandler) ?? [];
         const merged = [...existing, ...options.translatableFields];
         this.translatableFieldRules.set(nameOrHandler, merged);
-        this.i18nAdapter?.registerTranslatableFields?.(nameOrHandler, options.translatableFields);
+        this.i18nAdapter?.registerTranslatableFields?.(
+          nameOrHandler,
+          options.translatableFields,
+        );
       }
 
       return this;
@@ -268,7 +286,7 @@ export class PlopNextCore {
    *
    * Resolution order:
    * 1. Legacy PromptRenderer registered via `addPrompt()` / `setPrompt()` — highest priority.
-  * 2. PromptHandler registered via `registerPrompt(handler)` for the exact type.
+   * 2. PromptHandler registered via `registerPrompt(handler)` for the exact type.
    * 3. PromptHandler registered for "input" as fallback.
    *
    * @param type   Prompt type string (e.g. "input", "list", "datepicker").
@@ -324,15 +342,21 @@ export class PlopNextCore {
     }
 
     const extension = extname(absolutePath).toLowerCase();
-    const parsed = extension === ".json"
-      ? this.parseThemeJsonFile(absolutePath)
-      : this.parseThemeModuleFile(absolutePath, extension);
+    const parsed =
+      extension === ".json"
+        ? this.parseThemeJsonFile(absolutePath)
+        : this.parseThemeModuleFile(absolutePath, extension);
 
     if (!this.isRecord(parsed)) {
-      throw new Error(`Theme file must contain an object at root: ${absolutePath}`);
+      throw new Error(
+        `Theme file must contain an object at root: ${absolutePath}`,
+      );
     }
 
-    if (this.looksLikeI18nSource(parsed) && !this.looksLikeThemeSource(parsed)) {
+    if (
+      this.looksLikeI18nSource(parsed) &&
+      !this.looksLikeThemeSource(parsed)
+    ) {
       throw new Error(
         `Invalid theme file at ${absolutePath}: looks like locales/texts content. ` +
           `Use registerLocale(s) or registerTexts for translation files.`,
@@ -399,12 +423,16 @@ export class PlopNextCore {
   getHelper(name: string): HandlebarsHelper | undefined {
     const helpers = Handlebars.helpers as UnknownRecord;
     const helper = helpers[name];
-    return typeof helper === "function" ? (helper as HandlebarsHelper) : undefined;
+    return typeof helper === "function"
+      ? (helper as HandlebarsHelper)
+      : undefined;
   }
 
   getHelperList(): string[] {
     const helpers = Handlebars.helpers as UnknownRecord;
-    return Object.keys(helpers).filter((name) => typeof helpers[name] === "function");
+    return Object.keys(helpers).filter(
+      (name) => typeof helpers[name] === "function",
+    );
   }
 
   getPartial(name: string): string | undefined {
@@ -424,17 +452,26 @@ export class PlopNextCore {
     return Object.keys(partials);
   }
 
-  setWelcomeMessage(message: string | null): this {
-    this.welcomeMessage = message;
+  showWelcomeMessage(show: boolean = true): this {
+    this.showWelcomeMessageFlag = show;
     return this;
   }
 
   getWelcomeMessage(): string | null {
-    if (this.welcomeMessage !== null) {
-      return this.welcomeMessage;
-    }
-
     return this.i18nAdapter?.getWelcomeMessage?.() ?? null;
+  }
+
+  isWelcomeMessageShown(): boolean {
+    return this.showWelcomeMessageFlag;
+  }
+
+  showTitle(show: boolean = true): this {
+    this.showTitleFlag = show;
+    return this;
+  }
+
+  isTitleShown(): boolean {
+    return this.showTitleFlag;
   }
 
   /**
@@ -443,7 +480,9 @@ export class PlopNextCore {
    */
   setGeneratorPageSize(pageSize: number): this {
     if (!Number.isInteger(pageSize) || pageSize < 1) {
-      throw new Error('Generator page size must be an integer greater than or equal to 1.');
+      throw new Error(
+        "Generator page size must be an integer greater than or equal to 1.",
+      );
     }
 
     this.generatorPageSize = pageSize;
@@ -510,10 +549,14 @@ export class PlopNextCore {
     const result: GeneratorMenuItem[] = [];
     for (const entry of this.generatorEntries) {
       if (entry.kind === "separator") {
-        result.push({ type: "separator" as const, separator: entry.text ?? "" });
+        result.push({
+          type: "separator" as const,
+          separator: entry.text ?? "",
+        });
       } else {
         const cfg = this.generators.get(entry.name);
-        if (cfg) result.push({ name: entry.name, description: cfg.description });
+        if (cfg)
+          result.push({ name: entry.name, description: cfg.description });
       }
     }
     return result;
@@ -618,17 +661,28 @@ export class PlopNextCore {
   }
 
   registerTexts(locale: LocaleTag, texts: LocaleTexts | string): this;
-  registerTexts(localesOrTexts: Record<string, LocaleTexts> | LocaleTexts | string): this;
   registerTexts(
-    localeOrTexts: LocaleTag | Record<string, LocaleTexts> | LocaleTexts | string,
+    localesOrTexts: Record<string, LocaleTexts> | LocaleTexts | string,
+  ): this;
+  registerTexts(
+    localeOrTexts:
+      | LocaleTag
+      | Record<string, LocaleTexts>
+      | LocaleTexts
+      | string,
     maybeTexts?: LocaleTexts | string,
   ): this {
-    if (typeof localeOrTexts === "string" && typeof maybeTexts !== "undefined") {
+    if (
+      typeof localeOrTexts === "string" &&
+      typeof maybeTexts !== "undefined"
+    ) {
       this.i18nAdapter?.registerTexts?.(localeOrTexts, maybeTexts);
       return this;
     }
 
-    this.i18nAdapter?.registerTexts?.(localeOrTexts as Record<string, LocaleTexts> | LocaleTexts | string);
+    this.i18nAdapter?.registerTexts?.(
+      localeOrTexts as Record<string, LocaleTexts> | LocaleTexts | string,
+    );
     return this;
   }
 
@@ -697,8 +751,14 @@ export class PlopNextCore {
         }
 
         if (this.actionTypes.has(action.type)) {
-          const customAction = this.actionTypes.get(action.type) as CustomActionFunction;
-          const message = await customAction(answers, action as ActionConfig, this);
+          const customAction = this.actionTypes.get(
+            action.type,
+          ) as CustomActionFunction;
+          const message = await customAction(
+            answers,
+            action as ActionConfig,
+            this,
+          );
           steps.push({
             type: action.type,
             status: "success",
@@ -735,8 +795,12 @@ export class PlopNextCore {
     return { steps, failed };
   }
 
-  async resolveActions(actions: ActionsConfig, answers: Record<string, unknown>): Promise<Action[]> {
-    const resolved = typeof actions === "function" ? await actions(answers) : actions;
+  async resolveActions(
+    actions: ActionsConfig,
+    answers: Record<string, unknown>,
+  ): Promise<Action[]> {
+    const resolved =
+      typeof actions === "function" ? await actions(answers) : actions;
 
     if (!Array.isArray(resolved)) {
       throw new Error("Generator actions must resolve to an array.");
@@ -779,7 +843,9 @@ export class PlopNextCore {
   // ── Private ───────────────────────────────────────────────────────
 
   private registerBuiltInHelpers(): void {
-    const applyCase = (formatter: (value: string) => string): HandlebarsHelper => {
+    const applyCase = (
+      formatter: (value: string) => string,
+    ): HandlebarsHelper => {
       return (value: unknown) => formatter(String(value ?? ""));
     };
 
@@ -825,7 +891,9 @@ export class PlopNextCore {
   }
 
   private loadPackageJsonNearPlopfile(): UnknownRecord | undefined {
-    const baseDirectory = this.plopfilePath ? dirname(this.plopfilePath) : this.destBasePath;
+    const baseDirectory = this.plopfilePath
+      ? dirname(this.plopfilePath)
+      : this.destBasePath;
     const packagePath = resolve(baseDirectory, "package.json");
 
     if (this.pkgCachePath === packagePath) {
@@ -851,7 +919,9 @@ export class PlopNextCore {
   }
 
   private getPathValue(source: UnknownRecord, propertyPath: string): unknown {
-    const segments = propertyPath.split(".").filter((segment) => segment.length > 0);
+    const segments = propertyPath
+      .split(".")
+      .filter((segment) => segment.length > 0);
     let current: unknown = source;
 
     for (const segment of segments) {
@@ -888,6 +958,19 @@ export class PlopNextCore {
    * Merges in order: defaultTheme → type defaults → user global theme → user type theme.
    */
   private resolvePromptTypeTheme(type: string): Theme {
+    if (type === "generator-select") {
+      const selectDefaults = PROMPT_TYPE_THEMES["select"];
+      const userSelectTheme = this.resolveUserPromptTypeTheme("select");
+      const userGeneratorSelectTheme = this.resolveUserPromptTypeTheme(type);
+
+      return this.mergeThemeLayers(
+        selectDefaults,
+        this.resolveNormalizedGlobalTheme(),
+        userSelectTheme,
+        userGeneratorSelectTheme,
+      );
+    }
+
     const typeDefaults = PROMPT_TYPE_THEMES[type as PromptThemeType];
     const userTypeTheme = this.resolveUserPromptTypeTheme(type);
 
@@ -926,7 +1009,11 @@ export class PlopNextCore {
 
     for (const [key, value] of Object.entries(source)) {
       if (this.isPromptThemeTypeKey(key)) continue;
-      if (key === "waitingMessage" || key === "maskedText" || key === "disabledError") {
+      if (
+        key === "waitingMessage" ||
+        key === "maskedText" ||
+        key === "disabledError"
+      ) {
         continue;
       }
       normalized[key] = value;
@@ -956,9 +1043,7 @@ export class PlopNextCore {
       normalized.style = style;
     }
 
-    const i18n = this.isRecord(normalized.i18n)
-      ? { ...normalized.i18n }
-      : {};
+    const i18n = this.isRecord(normalized.i18n) ? { ...normalized.i18n } : {};
 
     if (typeof source.disabledError === "string") {
       i18n.disabledError = source.disabledError;
@@ -971,7 +1056,9 @@ export class PlopNextCore {
     return normalized as Partial<Theme>;
   }
 
-  private mergeThemeLayers(...layers: Array<Partial<Theme> | undefined>): Theme {
+  private mergeThemeLayers(
+    ...layers: Array<Partial<Theme> | undefined>
+  ): Theme {
     const mergedTheme: Theme = {
       icon: defaultTheme.icon,
       prefix: defaultTheme.prefix,
@@ -1098,7 +1185,9 @@ export class PlopNextCore {
       "disabledError",
     ]);
 
-    return keys.some((key) => rootThemeKeys.has(key) || this.isPromptThemeTypeKey(key));
+    return keys.some(
+      (key) => rootThemeKeys.has(key) || this.isPromptThemeTypeKey(key),
+    );
   }
 
   private looksLikeI18nSource(value: UnknownRecord): boolean {
@@ -1115,7 +1204,13 @@ export class PlopNextCore {
       return true;
     }
 
-    const knownI18nRoots = new Set(["cli", "inquirer", "actions", "errors", "help"]);
+    const knownI18nRoots = new Set([
+      "cli",
+      "inquirer",
+      "actions",
+      "errors",
+      "help",
+    ]);
     return entries.some(([key]) => knownI18nRoots.has(key));
   }
 
@@ -1166,15 +1261,18 @@ export class PlopNextCore {
   private mergeIconLayers(
     base: DefaultTheme["icon"],
     override: DefaultTheme["icon"] | undefined,
-  ): string | {
-    idle?: string;
-    done?: string;
-    cursor?: string;
-    checked?: string;
-    unchecked?: string;
-    disabledChecked?: string;
-    disabledUnchecked?: string;
-  } | undefined {
+  ):
+    | string
+    | {
+        idle?: string;
+        done?: string;
+        cursor?: string;
+        checked?: string;
+        unchecked?: string;
+        disabledChecked?: string;
+        disabledUnchecked?: string;
+      }
+    | undefined {
     if (override === undefined) return base;
     if (typeof override === "string") return override;
     if (typeof base === "string" || base === undefined) {

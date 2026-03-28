@@ -40,7 +40,15 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
   common: {
     prefix: true,
     spinner: true,
-    style: ["answer", "message", "error", "defaultAnswer", "help", "highlight", "key"],
+    style: [
+      "answer",
+      "message",
+      "error",
+      "defaultAnswer",
+      "help",
+      "highlight",
+      "key",
+    ],
   },
   input: {
     prefix: true,
@@ -52,20 +60,46 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
     prefix: true,
     spinner: true,
     indexMode: true,
-    style: ["answer", "message", "error", "help", "highlight", "description", "disabled", "keysHelpTip"],
+    style: [
+      "answer",
+      "message",
+      "error",
+      "help",
+      "highlight",
+      "description",
+      "disabled",
+      "keysHelpTip",
+    ],
     icon: ["cursor"],
     i18n: true,
     keybindings: true,
   },
   list: { baseSelector: "select" },
+  "generator-select": { baseSelector: "select" },
   checkbox: {
     prefix: true,
     spinner: true,
     style: [
-      "answer", "message", "error", "defaultAnswer", "help", "highlight",
-      "key", "disabled", "disabledChoice", "description", "renderSelectedChoices", "keysHelpTip",
+      "answer",
+      "message",
+      "error",
+      "defaultAnswer",
+      "help",
+      "highlight",
+      "key",
+      "disabled",
+      "disabledChoice",
+      "description",
+      "renderSelectedChoices",
+      "keysHelpTip",
     ],
-    icon: ["checked", "unchecked", "cursor", "disabledChecked", "disabledUnchecked"],
+    icon: [
+      "checked",
+      "unchecked",
+      "cursor",
+      "disabledChecked",
+      "disabledUnchecked",
+    ],
     i18n: true,
     keybindings: true,
   },
@@ -77,7 +111,17 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
   search: {
     prefix: true,
     spinner: true,
-    style: ["answer", "message", "error", "help", "highlight", "description", "disabled", "searchTerm", "keysHelpTip"],
+    style: [
+      "answer",
+      "message",
+      "error",
+      "help",
+      "highlight",
+      "description",
+      "disabled",
+      "searchTerm",
+      "keysHelpTip",
+    ],
     icon: ["cursor"],
   },
   password: {
@@ -119,7 +163,9 @@ export class PromptThemeSelectorRegistry {
   private readonly defaultSelectorName = "common";
 
   constructor() {
-    for (const [type, selector] of Object.entries(BUILT_IN_PROMPT_THEME_SELECTORS)) {
+    for (const [type, selector] of Object.entries(
+      BUILT_IN_PROMPT_THEME_SELECTORS,
+    )) {
       this.selectors.set(type, cloneSelector(selector));
     }
   }
@@ -158,7 +204,11 @@ export class PromptThemeSelectorRegistry {
       } else {
         // spec is string[] — extract sub-fields from object
         const sourceObj = source[field];
-        if (sourceObj === null || typeof sourceObj !== "object" || Array.isArray(sourceObj)) {
+        if (
+          sourceObj === null ||
+          typeof sourceObj !== "object" ||
+          Array.isArray(sourceObj)
+        ) {
           continue;
         }
         const filtered: UnknownRecord = {};
@@ -191,7 +241,9 @@ export class PromptThemeSelectorRegistry {
 
       const base = this.selectors.get(selector.baseSelector);
       if (!base) {
-        throw new Error(`Unknown prompt theme selector base "${selector.baseSelector}".`);
+        throw new Error(
+          `Unknown prompt theme selector base "${selector.baseSelector}".`,
+        );
       }
 
       visited.add(selector.baseSelector);

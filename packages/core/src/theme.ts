@@ -23,6 +23,7 @@ export type Keybinding = {
 export const BUILT_IN_PROMPT_TYPES = [
   "input",
   "select",
+  "generator-select",
   "list",
   "checkbox",
   "confirm",
@@ -47,22 +48,24 @@ type NormalizedChoice<Value> = {
 };
 
 export type DefaultTheme = {
-  icon?: string | {
-    /** Idle state icon (used by prefix-like contexts). */
-    idle?: string;
-    /** Done state icon (used by prefix-like contexts). */
-    done?: string;
-    /** Cursor icon, used by select/list/checkbox to mark the focused item. */
-    cursor?: string;
-    /** Checked icon, used by checkbox for selected items. */
-    checked?: string;
-    /** Unchecked icon, used by checkbox for unselected items. */
-    unchecked?: string;
-    /** Checked icon shown for a disabled-but-checked item in checkbox prompts. */
-    disabledChecked?: string;
-    /** Unchecked icon shown for a disabled-but-unchecked item in checkbox prompts. */
-    disabledUnchecked?: string;
-  };
+  icon?:
+    | string
+    | {
+        /** Idle state icon (used by prefix-like contexts). */
+        idle?: string;
+        /** Done state icon (used by prefix-like contexts). */
+        done?: string;
+        /** Cursor icon, used by select/list/checkbox to mark the focused item. */
+        cursor?: string;
+        /** Checked icon, used by checkbox for selected items. */
+        checked?: string;
+        /** Unchecked icon, used by checkbox for unselected items. */
+        unchecked?: string;
+        /** Checked icon shown for a disabled-but-checked item in checkbox prompts. */
+        disabledChecked?: string;
+        /** Unchecked icon shown for a disabled-but-unchecked item in checkbox prompts. */
+        disabledUnchecked?: string;
+      };
 
   /**
    * Prefix shown before the prompt message.
@@ -138,6 +141,7 @@ export type DefaultTheme = {
    * plop-next specific CLI style helpers.
    */
   plopNext?: {
+    menuTitle?: (text: string) => string;
     welcome?: (text: string) => string;
     generatorMenu?: {
       title?: (text: string) => string;
@@ -161,7 +165,9 @@ export type DefaultTheme = {
   };
 };
 
-export type Theme<Extension extends object = object> = Prettify<Extension & DefaultTheme>;
+export type Theme<Extension extends object = object> = Prettify<
+  Extension & DefaultTheme
+>;
 
 /**
  * Shorthand aliases accepted in theme configs.
@@ -183,28 +189,27 @@ export type PromptThemeScope = Prettify<Partial<Theme> & ThemeAliases>;
  * Allows global fields and per-prompt overrides at the same level.
  */
 export type ThemeConfig = Prettify<
-  PromptThemeScope &
-  Partial<Record<PromptThemeType, PromptThemeScope>>
+  PromptThemeScope & Partial<Record<PromptThemeType, PromptThemeScope>>
 >;
 
 export const defaultTheme: DefaultTheme = {
   icon: {
-    idle: styleText('blue', '?'),
-    done: styleText('green', figures.tick),
+    idle: styleText("blue", "?"),
+    done: styleText("green", figures.tick),
     cursor: figures.pointer,
-    checked: styleText('green', figures.circleFilled),
+    checked: styleText("green", figures.circleFilled),
     unchecked: figures.circle,
-    disabledChecked: styleText('green', figures.circleDouble),
+    disabledChecked: styleText("green", figures.circleDouble),
     disabledUnchecked: "-",
   },
   prefix: {
-    idle: styleText('blue', '?'),
-    done: styleText('green', figures.tick),
+    idle: styleText("blue", "?"),
+    done: styleText("green", figures.tick),
   },
   spinner: {
     interval: 80,
-    frames: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'].map((frame) =>
-      styleText('yellow', frame),
+    frames: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"].map((frame) =>
+      styleText("yellow", frame),
     ),
   },
   style: {
@@ -214,16 +219,19 @@ export const defaultTheme: DefaultTheme = {
     defaultAnswer: (text: string) => styleText("dim", `(${text})`),
     help: (text: string) => styleText("dim", text),
     highlight: (text: string) => styleText("cyan", text),
-    description: (text: string) => styleText('cyan', text),
-    disabled: (text: string) => styleText('dim', text),
+    description: (text: string) => styleText("cyan", text),
+    disabled: (text: string) => styleText("dim", text),
     disabledChoice: (text: string) => styleText("dim", `- ${text}`),
-    searchTerm: (text: string) => styleText('cyan', text),
+    searchTerm: (text: string) => styleText("cyan", text),
     renderSelectedChoices: (selectedChoices) =>
-      selectedChoices.map((choice) => choice.short).join(', '),
+      selectedChoices.map((choice) => choice.short).join(", "),
     keysHelpTip: (keys: [string, string][]) =>
       keys
-        .map(([key, action]) => `${styleText('bold', key)} ${styleText('dim', action)}`)
-        .join(styleText('dim', ' • ')),
+        .map(
+          ([key, action]) =>
+            `${styleText("bold", key)} ${styleText("dim", action)}`,
+        )
+        .join(styleText("dim", " • ")),
     key: (text: string) => styleText("cyan", styleText("bold", `<${text}>`)),
     maskedText: "[input is masked]",
     waitingMessage: (enterKey: string) =>
@@ -236,6 +244,7 @@ export const defaultTheme: DefaultTheme = {
   },
   keybindings: [] as ReadonlyArray<Keybinding>,
   plopNext: {
+    menuTitle: (text: string) => styleText(["bold", "underline"], text),
     welcome: (text: string) => styleText("dim", text),
     generatorMenu: {
       title: (text: string) => styleText("bold", text),
@@ -263,7 +272,9 @@ export const defaultTheme: DefaultTheme = {
  * Type-specific theme overrides for each @inquirer/prompts prompt type.
  * These are merged after the global defaultTheme.
  */
-export const PROMPT_TYPE_THEMES: Partial<Record<PromptThemeType, PromptThemeScope>> = {
+export const PROMPT_TYPE_THEMES: Partial<
+  Record<PromptThemeType, PromptThemeScope>
+> = {
   /**
    * Checkbox-specific defaults.
    * - Different disabledError message ("toggled" instead of "selected")

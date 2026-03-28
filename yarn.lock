@@ -1410,13 +1410,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/add@npm:^2":
-  version: 2.0.3
-  resolution: "@types/add@npm:2.0.3"
-  checksum: 10/c15815ef0e4903113f7fda84b4c2704a1b694fd6f53a6e3c9327b5b7067aba676c75e696b950401de45be7646b37b7059303a7bb5c4363de3eb3e0c06d25f565
-  languageName: node
-  linkType: hard
-
 "@types/chai@npm:^5.2.2":
   version: 5.2.3
   resolution: "@types/chai@npm:5.2.3"
@@ -1769,13 +1762,6 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: 10/690c673bb4d61b38ef82795fab58526471ad7f7e67c0e40c4ff1e10ecd80ce5312554ef633c9995bfc4e6d170cef165711f9ca9e49040b62c0c66fbf2dd3df2b
-  languageName: node
-  linkType: hard
-
-"add@npm:^2.0.6":
-  version: 2.0.6
-  resolution: "add@npm:2.0.6"
-  checksum: 10/1d2c0780a660edfc161b7784a846865b28dcd8514cc6042c8e283298f379cd3b150412b67a12603a4ac885912f05759f3e2993c27219f85d1face316ffc0b175
   languageName: node
   linkType: hard
 
@@ -4024,10 +4010,8 @@ __metadata:
     "@eslint/js": "npm:^10.0.1"
     "@plop-next/cli": "workspace:^"
     "@plop-next/i18n": "workspace:^"
-    "@types/add": "npm:^2"
     "@types/node": "npm:^25.5.0"
     "@vitest/eslint-plugin": "npm:^1.6.12"
-    add: "npm:^2.0.6"
     eslint: "npm:^10.0.3"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.4.0"
