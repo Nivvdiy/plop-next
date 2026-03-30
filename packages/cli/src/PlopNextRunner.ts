@@ -147,6 +147,13 @@ export class PlopNextRunner {
 
       const promptType = typeof type === "string" ? type : "input";
 
+      if (promptType === "generator-select") {
+        throw new InvalidPromptError(
+          typeof promptName === "string" ? promptName : String(promptName),
+          'Prompt type "generator-select" is reserved for the internal generator menu and cannot be used in generator prompts.',
+        );
+      }
+
       if (typeof promptName !== "string" || promptName.length === 0) {
         throw new InvalidPromptError(
           String(promptName),

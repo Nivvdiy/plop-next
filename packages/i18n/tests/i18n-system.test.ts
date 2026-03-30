@@ -97,7 +97,6 @@ describe("PlopNextI18n — Complete i18n system", () => {
         component: {
           name: {
             message: "Name?",
-            placeholder: "ex: Button",
           },
         },
       });
@@ -113,7 +112,6 @@ describe("PlopNextI18n — Complete i18n system", () => {
       core.useI18n({ force: "en" });
 
       expect(core.t("component.name.message", [], "default")).toBe("Name?");
-      expect(core.t("component.name.placeholder", [], "default")).toBe("ex: Button");
       expect(core.t("component.name.hint", [], "default")).toBe("PascalCase required");
     });
 
@@ -157,7 +155,7 @@ describe("PlopNextI18n — Complete i18n system", () => {
     it("should preserve existing keys when adding new ones", () => {
       i18n.registerTexts("en", {
         form: {
-          name: { message: "Name?", placeholder: "ex: John" },
+          name: { message: "Name?", description: "Your full name" },
         },
       });
 
@@ -166,7 +164,7 @@ describe("PlopNextI18n — Complete i18n system", () => {
       core.useI18n({ force: "en" });
 
       expect(core.t("form.name.message", [], "default")).toBe("Name?");
-      expect(core.t("form.name.placeholder", [], "default")).toBe("ex: John");
+      expect(core.t("form.name.description", [], "default")).toBe("Your full name");
       expect(core.t("form.name.hint", [], "default")).toBe("(required)");
     });
   });
@@ -228,7 +226,7 @@ describe("PlopNextI18n — Complete i18n system", () => {
     it("should have EN defaults for CLI texts", () => {
       core.useI18n({ force: "en" });
 
-      expect(core.t("cli.welcome", [], "default")).toBe(
+      expect(core.t("cli.title", [], "default")).toBe(
         "Welcome to plop-next! 🚀"
       );
       expect(core.t("cli.selectGenerator", [], "default")).toBe(
@@ -241,7 +239,7 @@ describe("PlopNextI18n — Complete i18n system", () => {
     it("should have FR defaults for CLI texts", () => {
       core.useI18n({ force: "fr" });
 
-      expect(core.t("cli.welcome", [], "default")).toBe(
+      expect(core.t("cli.title", [], "default")).toBe(
         "Bienvenue dans plop-next ! 🚀"
       );
       expect(core.t("cli.selectGenerator", [], "default")).toBe(

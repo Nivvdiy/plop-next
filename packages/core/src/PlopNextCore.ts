@@ -55,6 +55,7 @@ import {
 } from "./theme";
 import type { DefaultTheme, PromptThemeType, Theme } from "./theme";
 import type { SeparatorLike } from "./prompts/Separator";
+import type { PlopError } from "./errors/PlopError";
 
 export interface UseI18nOptions {
   /** Force a specific locale tag, e.g. "fr". */
@@ -156,6 +157,7 @@ export class PlopNextCore {
   private theme: PlopNextTheme = {};
   private pkgCachePath?: string;
   private pkgCache?: UnknownRecord;
+  private warningReporter?: (warning: PlopError) => void;
 
   constructor() {
     this.registerBuiltInHelpers();
@@ -498,6 +500,16 @@ export class PlopNextCore {
 
   setI18nAdapter(adapter: I18nAdapter): this {
     this.i18nAdapter = adapter;
+    return this;
+  }
+
+  setWarningReporter(reporter: ((warning: PlopError) => void) | undefined): this {
+    this.warningReporter = reporter;
+    return this;
+  }
+
+  reportWarning(warning: PlopError): this {
+    this.warningReporter?.(warning);
     return this;
   }
 

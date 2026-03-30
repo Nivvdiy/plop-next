@@ -13,7 +13,7 @@ type NamedChoice = {
  * - Traductions des prompts simples
  * - Support des prompts indexés [0], [1]
  * - Traductions des choices
- * - Traductions des champs additionnels (placeholder, hint, etc.)
+ * - Traductions des champs additionnels (hint, description, etc.)
  * - Fallback sans indices
  */
 
@@ -55,7 +55,6 @@ describe("PlopNextI18n — preparePrompts", () => {
         component: {
           name: {
             message: "Nom du composant",
-            placeholder: "ex: Button",
             hint: "(obligatoire)",
           },
         },

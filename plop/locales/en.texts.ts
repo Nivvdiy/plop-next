@@ -164,4 +164,4 @@ const Text = {
   },
 } as const;
 
-export default Text;
+export { Text };

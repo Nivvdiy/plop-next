@@ -1,12 +1,13 @@
 const Local = {
   cli: {
-    welcome: "Willkommen bei plop-next! 🚀",
+    title: "Willkommen bei plop-next! 🚀",
     welcomeMessage:
       "Diese interaktive CLI ist eine Demo der Fähigkeiten von PlopNext. Wählen Sie einen Generator aus, um zu sehen, wie er Code basierend auf Ihren Eingaben erstellen kann.",
     selectGenerator: "Bitte waehlen Sie einen Generator",
     noGenerators:
       "Keine Generatoren registriert. Fuegen Sie welche in Ihrer plopfile hinzu.",
-    generatorNotFound: "Generator nicht gefunden.",
+    generatorNotFound: (name: string) =>
+      `Generator \"${name}\" nicht gefunden.`,
     aborted: "Abgebrochen.",
     done: "Fertig!",
     promptCancelled: "Konsole vom Benutzer geschlossen.",
@@ -34,8 +35,8 @@ const Local = {
       helpSelect: "auswaehlen",
     },
     editor: {
-      waitingMessage:
-        "Druecken Sie Enter, um Ihren bevorzugten Editor zu starten.",
+      waitingMessage: (enterKey: any) =>
+        `Druecken Sie ${enterKey}, um Ihren bevorzugten Editor zu starten.`,
     },
     password: {
       maskedText: "[eingabe ist ausgeblendet]",
@@ -43,38 +44,47 @@ const Local = {
   },
   actions: {
     add: {
-      creating: "Datei wird erstellt",
-      created: "Datei erstellt",
-      alreadyExists: "Datei existiert bereits",
+      creating: (path: string) => `Datei wird erstellt: ${path}`,
+      created: (path: string) => `Datei erstellt: ${path}`,
+      alreadyExists: (path: string) => `Datei existiert bereits: ${path}`,
     },
     modify: {
-      modifying: "Datei wird bearbeitet",
-      modified: "Datei bearbeitet",
-      notFound: "Datei nicht gefunden",
-      patternNotFound: "Muster nicht gefunden",
+      modifying: (path: string) => `Datei wird bearbeitet: ${path}`,
+      modified: (path: string) => `Datei bearbeitet: ${path}`,
+      notFound: (path: string) => `Datei nicht gefunden: ${path}`,
+      patternNotFound: (path: string) => `Muster nicht gefunden in: ${path}`,
     },
     append: {
-      appending: "In Datei wird angehaengt",
-      appended: "In Datei angehaengt",
+      appending: (path: string) => `In Datei wird angehaengt: ${path}`,
+      appended: (path: string) => `In Datei angehaengt: ${path}`,
     },
   },
   errors: {
-    unknownAction: "Unbekannter Aktionstyp.",
+    unknownAction: (type: string) => `Unbekannter Aktionstyp: \"${type}\"`,
     plopfileNotFound: "Keine plopfile gefunden (plopfile.js oder plopfile.ts).",
-    plopfileLoadFailed: "plopfile konnte nicht geladen werden.",
-    generatorNotFound: "Generator nicht gefunden.",
+    plopfileLoadFailed: (err: string) =>
+      `plopfile konnte nicht geladen werden: ${err}`,
+    generatorNotFound: (name: string) =>
+      `Generator \"${name}\" nicht gefunden.`,
     noGenerators: "Keine Generatoren registriert.",
-    invalidPrompt: "Ungueltiger Prompt.",
-    bypassParse: "Bypass-Wert konnte dem Prompt nicht zugewiesen werden.",
-    plopfileLoad: "Fehler beim Laden der plopfile.",
+    invalidPrompt: (name: string, reason: string) =>
+      `Ungueltiger Prompt \"${name}\": ${reason}`,
+    bypassParse: (
+      promptName: string,
+      promptType: string,
+      value: string,
+      detail?: string,
+    ) =>
+      `Bypass-Wert \"${value}\" konnte dem Prompt ${promptType} \"${promptName}\"${detail ? `: ${detail}` : ""} nicht zugewiesen werden.`,
+    plopfileLoad: (path: string) => `Fehler beim Laden der plopfile: ${path}`,
     plopfileExport: "Die plopfile muss eine Default-Funktion exportieren.",
     userCancelled: "Prompt vom Benutzer abgebrochen.",
     plopfileNotFoundWarning:
       "Keine plopfile gefunden. Erstellen Sie eine plopfile.js im Projekt.",
-    forcedLangI18nMissing:
-      "Erzwungene Sprache ignoriert, da @plop-next/i18n nicht installiert ist.",
-    forcedLangUnavailable:
-      "Erzwungene Sprache ist nicht verfuegbar. Fallback auf Englisch.",
+    forcedLangI18nMissing: (locale: string) =>
+      `Erzwungene Sprache \"${locale}\" ignoriert, da @plop-next/i18n nicht installiert ist.`,
+    forcedLangUnavailable: (locale: string) =>
+      `Erzwungene Sprache \"${locale}\" ist nicht verfuegbar. Fallback auf Englisch.`,
   },
   help: {
     usage: "Verwendung:",
@@ -85,11 +95,19 @@ const Local = {
     options: "Optionen:",
     optHelp: "Diese Hilfe anzeigen",
     optShowTypeNames: "Typnamen statt Abkuerzungen anzeigen",
+    optInitTitle: "Plopfile Initialisierung",
+    optGenerateTitle: "Locale-, Text- und Theme- Dateien generieren",
+    optOthersTitle: "Weitere Optionen",
     optInit: "Eine grundlegende plopfile.ts erzeugen",
     optInitJs: "Eine grundlegende plopfile.js erzeugen",
     optInitTs: "Eine grundlegende plopfile.ts erzeugen",
     optDemo: "Einen Demo-Generator in der plopfile erzeugen",
     optI18n: "plopfile mit i18n-Unterstuetzung initialisieren",
+    optGenerate: "Ein Modell generieren: locale | texte | thema",
+    optPath: "Basis-Ausgabeverzeichnis für die generierten Modell-Dateien",
+    optExtension: "Generierte Dateierweiterung: ts | js | json",
+    optIncludeCustomTexts:
+      "Für die Locale-Generierung die übersetzbaren Schlüssel aus der plopfile einbeziehen",
     optVersion: "Aktuelle Version anzeigen",
     optForce: "Generator im Force-Modus ausfuehren",
     optLang: "Anzeigesprache erzwingen (z. B. en, de, fr)",
@@ -101,7 +119,6 @@ const Local = {
     lowDest:
       "Ausgabe in diesen Ordner schreiben statt in den Elternordner der plopfile",
     lowNoProgress: "Fortschritts-Spinner deaktivieren",
-    lowCompletion: "Shell-Completion-Skript anzeigen (bash|zsh|fish)",
     examples: "Beispiele:",
   },
   "react-component": {

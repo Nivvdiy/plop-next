@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PlopNextCore } from "@plop-next/core";
@@ -144,24 +144,90 @@ describe("PlopNextI18n", () => {
     expect(core.t("cli.selectGenerator")).toBe("Choisir via module CJS");
   });
 
-  it("registerLocales accepts a directory path with one JSON per locale", () => {
-    i18n.registerLocales(resolve(fixturesDir, "locales"));
+  it("registerLocales accepts a directory path with *.locale.* files", () => {
+    i18n.registerLocales(resolve(fixturesDir, "scoped"));
 
     core.useI18n({ force: "en" });
-    expect(core.t("cli.selectGenerator")).toBe("Choose via directory");
+    expect(core.t("cli.selectGenerator")).toBe("Choose via scoped locales");
 
     core.useI18n({ force: "fr" });
-    expect(core.t("cli.selectGenerator")).toBe("Choisir via dossier");
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via locales scopees");
   });
 
-  it("registerLocales accepts a directory path with one CJS file per locale", () => {
-    i18n.registerLocales(resolve(fixturesDir, "locales-modules"));
+  it("registerTexts accepts a directory path with *.texts.* files", () => {
+    i18n.registerTexts(resolve(fixturesDir, "scoped"));
 
     core.useI18n({ force: "en" });
-    expect(core.t("cli.selectGenerator")).toBe("Choose via module directory");
+    expect(core.t("cli.selectGenerator")).toBe("Choose via scoped texts");
 
     core.useI18n({ force: "fr" });
-    expect(core.t("cli.selectGenerator")).toBe("Choisir via dossier modules");
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via textes scopes");
+  });
+
+  it("registerLocales accepts locale-key exports (fr/FR) in scoped files", () => {
+    i18n.registerLocales(resolve(fixturesDir, "scoped-locale-keys"));
+
+    core.useI18n({ force: "en" });
+    expect(core.t("cli.selectGenerator")).toBe("Choose via locale-key locales");
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via locales key");
+  });
+
+  it("registerTexts accepts locale-key exports (fr/FR) in scoped files", () => {
+    i18n.registerTexts(resolve(fixturesDir, "scoped-locale-keys"));
+
+    core.useI18n({ force: "en" });
+    expect(core.t("cli.selectGenerator")).toBe("Choose via locale-key texts");
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via textes key");
+  });
+
+  it("registerLocales emits warnings for invalid *.locale.* files without exiting", () => {
+    const capturedWarnings: string[] = [];
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    (core as unknown as {
+      setWarningReporter?: (reporter: (warning: Error) => void) => void;
+    }).setWarningReporter?.((warning: Error) => {
+      capturedWarnings.push(String(warning.message));
+    });
+
+    i18n.registerLocales(resolve(fixturesDir, "scoped-warnings"));
+
+    core.useI18n({ force: "en" });
+    expect(core.t("cli.selectGenerator")).toBe("Choose via scoped locales");
+    const hasConsoleWarning = warnSpy.mock.calls.some(([message]) =>
+      String(message).includes("zz.locale.json"),
+    );
+    const hasReportedWarning = capturedWarnings.some((message) =>
+      message.includes("zz.locale.json"),
+    );
+    expect(hasConsoleWarning || hasReportedWarning).toBe(true);
+    warnSpy.mockRestore();
+  });
+
+  it("registerTexts emits warnings for invalid *.texts.* files without exiting", () => {
+    const capturedWarnings: string[] = [];
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    (core as unknown as {
+      setWarningReporter?: (reporter: (warning: Error) => void) => void;
+    }).setWarningReporter?.((warning: Error) => {
+      capturedWarnings.push(String(warning.message));
+    });
+
+    i18n.registerTexts(resolve(fixturesDir, "scoped-warnings"));
+
+    core.useI18n({ force: "fr" });
+    expect(core.t("cli.selectGenerator")).toBe("Choisir via textes scopes");
+    const hasConsoleWarning = warnSpy.mock.calls.some(([message]) =>
+      String(message).includes("zz.texts.json"),
+    );
+    const hasReportedWarning = capturedWarnings.some((message) =>
+      message.includes("zz.texts.json"),
+    );
+    expect(hasConsoleWarning || hasReportedWarning).toBe(true);
+    warnSpy.mockRestore();
   });
 
   it("registerLocales rejects theme JSON files", () => {
@@ -216,5 +282,28 @@ describe("PlopNextI18n", () => {
 
     core.useI18n({ force: "fr" });
     expect(core.t("cli.selectGenerator")).toBe("FR from one-arg multi depth");
+  });
+
+  it("getWelcomeMessage falls back to English when active locale welcomeMessage is null", () => {
+    i18n.registerText("en", "cli.welcomeMessage", "English welcome");
+    i18n.registerText("fr", "cli.welcomeMessage", null);
+
+    core.useI18n({ force: "fr" });
+    expect(core.getWelcomeMessage()).toBe("English welcome");
+  });
+
+  it("getWelcomeMessage falls back to en.texts welcomeMessage when locale message is null", () => {
+    i18n.registerTexts(resolve(fixturesDir, "scoped-locale-keys"));
+
+    core.useI18n({ force: "fr" });
+    expect(core.getWelcomeMessage()).toBe("English welcome from en.texts");
+  });
+
+  it("getWelcomeMessage returns null when English fallback is null", () => {
+    i18n.registerText("en", "cli.welcomeMessage", null);
+    i18n.registerText("fr", "cli.welcomeMessage", null);
+
+    core.useI18n({ force: "fr" });
+    expect(core.getWelcomeMessage()).toBeNull();
   });
 });

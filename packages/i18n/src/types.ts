@@ -6,7 +6,6 @@ import type { LocaleTexts, LocaleTag } from "@plop-next/core";
  * @example
  * {
  *   message: "What is your name?",
- *   placeholder: "Enter your name",
  *   hint: "(required)",
  *   description: "Your full name",
  *   validate: "Name is required",
@@ -14,7 +13,6 @@ import type { LocaleTexts, LocaleTag } from "@plop-next/core";
  */
 export interface PromptFieldTexts {
   message?: string;
-  placeholder?: string;
   hint?: string;
   description?: string;
   validate?: string;
@@ -29,7 +27,7 @@ export interface PromptFieldTexts {
 
 /**
  * Texts for a generator with multiple prompts.
- * Structure: promptName -> { message, placeholder, choices, ... }
+ * Structure: promptName -> { message, hint, description, choices, ... }
  * For arrays of prompts, use numeric indices: name[0], name[1], etc.
  *
  * @example

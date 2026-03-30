@@ -66,6 +66,15 @@ export class I18nRegistry {
     return this.locales.has(locale);
   }
 
+  getLocaleValue(locale: LocaleTag, key: string): unknown {
+    const localeEntry = this.locales.get(locale);
+    if (!localeEntry) {
+      return undefined;
+    }
+
+    return resolvePath(localeEntry, key);
+  }
+
   t(
     key: string,
     args: unknown[] = [],

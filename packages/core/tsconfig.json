@@ -1,7 +1,21 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "types": ["node"],
+    "module": "esnext",
+    "lib": [
+      "ESNext"
+    ],
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
     "noEmit": false,
+    "target": "es2020",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "declarationMap": true,
     "rootDir": "./src",
     "outDir": "./dist"
   },

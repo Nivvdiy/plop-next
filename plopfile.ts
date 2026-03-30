@@ -29,6 +29,18 @@ function joinArray(items: string[], separator: string = ", "): string {
 
 export default function plop(plop: PlopNext) {
 
+  // Instancier le plugin i18n
+  const i18n = new PlopNextI18n(plop);
+
+  // Charger les traductions depuis un dossier unique locales
+  //i18n.registerLocale("de", "./plop/locales/de.locale.ts");
+  //i18n.registerLocale("it", "./plop/locales/it.locale.ts");
+  //i18n.registerTexts("en", "./plop/locales/en.texts.ts");
+  //i18n.registerTexts("fr", "./plop/locales/fr.texts.ts");
+  //ou
+  i18n.registerLocales("./plop/locales");
+  i18n.registerTexts("./plop/locales");
+
   plop.showWelcomeMessage();
 
   // ==================
@@ -63,13 +75,6 @@ export default function plop(plop: PlopNext) {
   plop.registerHelper("lower", (...args: unknown[]) =>
     String(args[0] ?? "").toLowerCase(),
   );
-
-  // Instancier le plugin i18n
-  const i18n = new PlopNextI18n(plop);
-
-  // Charger les traductions depuis des dossiers de modules locale/textes
-  i18n.registerLocales("./plop/locales");
-  i18n.registerTexts("./plop/texts");
 
   // Enregistrer prompt custom
   plop.registerPrompt("table-multiple", TableMultiple, {

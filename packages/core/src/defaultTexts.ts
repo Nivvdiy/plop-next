@@ -38,6 +38,10 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
       helpNavigate: "navigate",
       helpSelect: "select",
     },
+    editor: {
+      waitingMessage: (enterKey: any) =>
+        `Press ${enterKey} to launch your preferred editor.`,
+    },
     password: {
       maskedText: "[input is hidden]",
     },
@@ -99,11 +103,19 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
     options: "Options:",
     optHelp: "Show this help display",
     optShowTypeNames: "Show type names instead of abbreviations",
+    optInitTitle: "Plopfile initialization",
+    optGenerateTitle: "Generate Locale, Texts, Theme files",
+    optOthersTitle: "Other options",
     optInit: "Generate a basic plopfile.ts",
     optInitJs: "Generate a basic plopfile.js",
     optInitTs: "Generate a basic plopfile.ts",
     optDemo: "Generate a demo generator in the plopfile",
     optI18n: "Initialize plopfile with i18n support",
+    optGenerate: "Generate template: locale | texts | theme",
+    optPath: "Base output directory for generated template files",
+    optExtension: "Generated file extension: ts | js | json",
+    optIncludeCustomTexts:
+      "For locale generation, include translatable keys from plopfile",
     optVersion: "Print current version",
     optForce: "Run the generator forcefully",
     optLang: "Force display locale (e.g. en, fr)",
@@ -116,7 +128,6 @@ export const CORE_DEFAULT_TEXTS: LocaleTexts = {
     lowDest:
       "Output to this directory instead of the plopfile parent directory",
     lowNoProgress: "Disable the progress spinner",
-    lowCompletion: "Output shell completion script (bash|zsh|fish)",
     examples: "Examples:",
   } satisfies HelpTexts,
 } as const;

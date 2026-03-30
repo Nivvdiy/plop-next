@@ -11,6 +11,56 @@ type CapturedPrompt = {
 };
 
 describe("PlopNextRunner generator display name translation", () => {
+  it("rejects generator-select when declared in generator prompts", async () => {
+    const core = {
+      getTheme() {
+        return { plopNext: {} };
+      },
+      getGeneratorList() {
+        return [{ name: "demo" }];
+      },
+      getGenerator(name: string) {
+        if (name === "demo") {
+          return {
+            prompts: [
+              {
+                type: "generator-select",
+                name: "badPrompt",
+                message: "Should not be allowed",
+              },
+            ],
+            actions: [],
+          };
+        }
+        return undefined;
+      },
+      preparePrompts(_generatorName: string, prompts: unknown[]) {
+        return prompts;
+      },
+      t(key: string, _args?: unknown[], fallback?: string) {
+        return fallback ?? key;
+      },
+      async resolveActions() {
+        return [];
+      },
+      async executeActions() {
+        return { steps: [], failed: false };
+      },
+      getActionTypeDisplay(type: string) {
+        return type;
+      },
+      formatActionTargetForDisplay(value: string) {
+        return value;
+      },
+    } as unknown as PlopNextCore;
+
+    const runner = new PlopNextRunner(core);
+
+    await expect(runner.run("demo")).rejects.toThrow(
+      'Prompt type "generator-select" is reserved for the internal generator menu and cannot be used in generator prompts.',
+    );
+  });
+
   it("uses generator-select prompt type for generator menu", async () => {
     let askedType: string | undefined;
 

@@ -39,12 +39,15 @@ const PARSE_OPTIONS = {
   cwd: { type: "string" },
   preload: { type: "string", multiple: true },
   plopfile: { type: "string", short: "p" },
-  completion: { type: "string" },
   progress: { type: "boolean", default: true },
   dest: { type: "string", short: "d" },
   force: { type: "boolean", short: "f" },
   "show-type-names": { type: "boolean", short: "t" },
-  lang: { type: "string" },
+  lang: { type: "string", short: "l" },
+  generate: { type: "string", short: "g" },
+  path: { type: "string", short: "P" },
+  extension: { type: "string", short: "e" },
+  "include-custom-texts": { type: "boolean" },
   help: { type: "boolean", short: "h" },
   init: { type: "boolean", short: "i" },
   "init-ts": { type: "boolean" },
@@ -53,6 +56,40 @@ const PARSE_OPTIONS = {
   i18n: { type: "boolean" },
   version: { type: "boolean", short: "v" },
 } as const;
+
+function normalizeCliOptionAliases(args: string[]): string[] {
+  const normalized: string[] = [];
+  let afterSeparator = false;
+
+  for (const token of args) {
+    if (token === "--") {
+      afterSeparator = true;
+      normalized.push(token);
+      continue;
+    }
+
+    if (!afterSeparator) {
+      if (token === "-ext" || token === "--ext") {
+        normalized.push("--extension");
+        continue;
+      }
+
+      if (token.startsWith("-ext=")) {
+        normalized.push(`--extension=${token.slice(5)}`);
+        continue;
+      }
+
+      if (token.startsWith("--ext=")) {
+        normalized.push(`--extension=${token.slice(6)}`);
+        continue;
+      }
+    }
+
+    normalized.push(token);
+  }
+
+  return normalized;
+}
 
 /**
  * Resolves the help texts for `--help` display.
@@ -258,7 +295,7 @@ function parseBypassArgs(rawArgs: string[], fallbackPositionals: string[]): Bypa
 }
 
 (async () => {
-const rawArgs = process.argv.slice(2);
+const rawArgs = normalizeCliOptionAliases(process.argv.slice(2));
 
 const { values, positionals } = parseArgs({
   args: rawArgs,
@@ -292,15 +329,22 @@ if (values.help) {
       "",
       pc.bold(t.options),
       `  -h, --help             ${pc.dim(t.optHelp)}`,
-      `  -t, --show-type-names  ${pc.dim(t.optShowTypeNames)}`,
+      `  ----- ${pc.dim(t.optInitTitle)} -----`,
       `  -i, --init             ${pc.dim(t.optInit)}`,
       `      --init-js          ${pc.dim(t.optInitJs)}`,
       `      --init-ts          ${pc.dim(t.optInitTs)}`,
-      `      --demo             ${pc.dim(t.optDemo)}`,
       `      --i18n             ${pc.dim(t.optI18n)}`,
+      `      --demo             ${pc.dim(t.optDemo)}`,
+      `  ---- ${pc.dim(t.optGenerateTitle)} -----`,
+      `  -g, --generate <kind>  ${pc.dim(t.optGenerate)}`,
+      `  -P, --path <dir>       ${pc.dim(t.optPath)}`,
+      `  -e, --extension <ext>  ${pc.dim(t.optExtension)}`,
+      `      --include-custom-texts ${pc.dim(t.optIncludeCustomTexts)}`,
+      `  ---- ${pc.dim(t.optOthersTitle)} -----`,
+      `  -t, --show-type-names  ${pc.dim(t.optShowTypeNames)}`,
       `  -v, --version          ${pc.dim(t.optVersion)}`,
       `  -f, --force            ${pc.dim(t.optForce)}`,
-      `      --lang <locale>    ${pc.dim(t.optLang)}`,
+      `  -l, --lang <locale>    ${pc.dim(t.optLang)}`,
       "",
       pc.dim(" ------------------------------------------------------"),
       pc.dim(`  ${t.danger}`),
@@ -310,7 +354,6 @@ if (values.help) {
       pc.dim(`  --preload              ${t.lowPreload}`),
       pc.dim(`  --dest                 ${t.lowDest}`),
       pc.dim(`  --no-progress          ${t.lowNoProgress}`),
-      pc.dim(`  --completion           ${t.lowCompletion}`),
       "",
       pc.bold(t.examples),
       `  $ ${pc.blue("plop-next")}`,
@@ -360,20 +403,11 @@ if (values.init || values["init-ts"] || values["init-js"]) {
   process.exit(0);
 }
 
-// ── --completion ─────────────────────────────────────────────────────────────
-if (values.completion) {
-  // TODO: generate shell completion scripts
-  console.error(
-    pc.yellow(
-      `Shell completion for "${values.completion}" is not yet implemented.`,
-    ),
-  );
-  process.exit(1);
-}
-
 // ── Run generator ────────────────────────────────────────────────────────────
 // First positional is the generator name: `plop-next component`
-const generator = positionals[0];
+const generateMode = values.generate as string | undefined;
+const generationLocale = generateMode ? positionals[0] : undefined;
+const generator = generateMode ? undefined : positionals[0];
 
 const cli = new PlopNextCLI();
 cli.launch({
@@ -385,6 +419,11 @@ cli.launch({
   dest: values.dest as string | undefined,
   force: values.force as boolean | undefined,
   lang: values.lang as string | undefined,
+  generateMode,
+  generateLocale: generationLocale,
+  path: values.path as string | undefined,
+  extension: values.extension as string | undefined,
+  includeCustomTexts: values["include-custom-texts"] as boolean | undefined,
   showTypeNames: values["show-type-names"] as boolean | undefined,
   bypassPositionals: bypass.positional,
   bypassNamed: bypass.named,

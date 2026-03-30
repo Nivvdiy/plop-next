@@ -38,6 +38,28 @@ const SUPPORTED_I18N_FILE_EXTENSIONS = new Set([
   ".ts",
   ".cts",
 ]);
+const SCOPED_LOCALE_FILE_PATTERN =
+  /^([a-z]{2}(?:[-_][A-Za-z0-9]{2,8})*)\.locale\.(ts|js|json)$/i;
+const SCOPED_TEXTS_FILE_PATTERN =
+  /^([a-z]{2}(?:[-_][A-Za-z0-9]{2,8})*)\.texts\.(ts|js|json)$/i;
+
+class RuntimeI18nSourceWarning extends Error {
+  readonly code = "I18N_SOURCE_WARNING";
+  readonly isOperational = true;
+  readonly config = {
+    isWarning: true,
+    shouldExit: false,
+    exitCode: 0,
+    showStackTrace: false,
+    allowLogFile: false,
+  };
+
+  constructor(message: string) {
+    super(message);
+    this.name = "RuntimeI18nSourceWarning";
+    Object.setPrototypeOf(this, RuntimeI18nSourceWarning.prototype);
+  }
+}
 
 export interface RegisterLocaleOptions {
   /** If true, this locale becomes the active locale immediately. */
@@ -74,8 +96,17 @@ export class PlopNextI18n {
       preparePrompts: (generatorName, prompts) =>
         this.preparePrompts(generatorName, prompts),
       getWelcomeMessage: () => {
-        const value = this.registry.t("cli.welcomeMessage");
-        return value === "cli.welcomeMessage" ? null : value;
+        const activeLocale = this.registry.getActiveLocale();
+        const activeValue = this.resolveWelcomeMessageForLocale(activeLocale);
+        if (activeValue !== null) {
+          return activeValue;
+        }
+
+        if (activeLocale === "en") {
+          return null;
+        }
+
+        return this.resolveWelcomeMessageForLocale("en");
       },
       use: (options) => this.enable(options),
       isEnabled: () => this.enabled,
@@ -289,6 +320,10 @@ export class PlopNextI18n {
 
     const stats = statSync(absolutePath);
     if (stats.isDirectory()) {
+      if (intent === "locales" || intent === "texts") {
+        return this.resolveScopedDirectory(absolutePath, fallbackLocale, intent);
+      }
+
       const files = readdirSync(absolutePath)
         .filter((name: string) =>
           SUPPORTED_I18N_FILE_EXTENSIONS.has(extname(name).toLowerCase()),
@@ -344,6 +379,245 @@ export class PlopNextI18n {
 
     const parsed = this.parseSourceFile(absolutePath);
     return this.normalizeObjectInput(parsed, fallbackLocale, intent);
+  }
+
+  private resolveScopedDirectory(
+    absolutePath: string,
+    fallbackLocale: LocaleTag,
+    intent: "locales" | "texts",
+  ): LocalesBundle {
+    const files = readdirSync(absolutePath).sort();
+    const bundle: LocalesBundle = {};
+    let matchedFiles = 0;
+
+    for (const fileName of files) {
+      const match =
+        intent === "locales"
+          ? fileName.match(SCOPED_LOCALE_FILE_PATTERN)
+          : fileName.match(SCOPED_TEXTS_FILE_PATTERN);
+
+      if (!match) {
+        continue;
+      }
+
+      matchedFiles += 1;
+      const locale = match[1];
+      if (!locale || !this.isLocaleLikeKey(locale)) {
+        this.emitI18nSourceWarning(
+          `Invalid ${intent} file name "${fileName}" in directory: ${absolutePath}. ` +
+            `Expected format "<locale>.${intent === "locales" ? "locale" : "texts"}.<ts|js|json>".`,
+        );
+        continue;
+      }
+
+      const filePath = resolve(absolutePath, fileName);
+      const scopedSource = this.parseScopedSourceFile(filePath, intent, locale);
+      if (!scopedSource) {
+        continue;
+      }
+
+      const normalized = this.normalizeObjectInput(
+        scopedSource,
+        fallbackLocale,
+        intent,
+      );
+
+      if (this.isLocalesBundle(normalized)) {
+        for (const [localeKey, texts] of Object.entries(normalized)) {
+          bundle[localeKey] = this.mergePlainObjects(
+            bundle[localeKey] ?? {},
+            texts,
+          );
+        }
+        continue;
+      }
+
+      bundle[locale] = this.mergePlainObjects(bundle[locale] ?? {}, normalized);
+    }
+
+    if (matchedFiles === 0) {
+      throw new Error(
+        `No ${intent} files found in directory: ${absolutePath}. ` +
+          `Expected "<locale>.${intent === "locales" ? "locale" : "texts"}.<ts|js|json>" files.`,
+      );
+    }
+
+    return bundle;
+  }
+
+  private parseScopedSourceFile(
+    filePath: string,
+    intent: "locales" | "texts",
+    fileLocale: LocaleTag,
+  ): LocaleTexts | undefined {
+    const extension = extname(filePath).toLowerCase();
+
+    if (extension === ".json") {
+      const parsed = this.parseJsonFile(filePath);
+      const extracted = this.extractScopedObject(
+        parsed,
+        intent,
+        filePath,
+        fileLocale,
+      );
+      if (!extracted) {
+        return undefined;
+      }
+      if (this.looksLikeThemeObject(extracted)) {
+        this.emitI18nSourceWarning(
+          `Ignored ${intent} file at ${filePath}: looks like a theme object.`,
+        );
+        return undefined;
+      }
+      return extracted;
+    }
+
+    if (!SUPPORTED_I18N_FILE_EXTENSIONS.has(extension)) {
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: unsupported extension "${extension || "<none>"}".`,
+      );
+      return undefined;
+    }
+
+    let loaded: unknown;
+    try {
+      loaded = requireModule(filePath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Unable to load i18n module at ${filePath}: ${message}. ` +
+          `If this file is ESM-only, import it in your plopfile and pass the object directly.`,
+      );
+    }
+
+    const extracted = this.extractScopedObject(
+      loaded,
+      intent,
+      filePath,
+      fileLocale,
+    );
+    if (!extracted) {
+      return undefined;
+    }
+
+    if (this.looksLikeThemeObject(extracted)) {
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: looks like a theme object.`,
+      );
+      return undefined;
+    }
+
+    return extracted;
+  }
+
+  private extractScopedObject(
+    source: unknown,
+    intent: "locales" | "texts",
+    filePath: string,
+    fileLocale: LocaleTag,
+  ): LocaleTexts | undefined {
+    if (!this.isPlainObject(source)) {
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: source must be an object.`,
+      );
+      return undefined;
+    }
+
+    const record = source as Record<string, unknown>;
+    const selectorKeys =
+      intent === "locales"
+        ? ["locale", "Locale", "local", "Local"]
+        : ["texts", "Texts", "text", "Text"];
+
+    for (const key of selectorKeys) {
+      if (!Object.prototype.hasOwnProperty.call(record, key)) {
+        continue;
+      }
+
+      const selected = record[key];
+      if (this.isPlainObject(selected)) {
+        return selected as LocaleTexts;
+      }
+
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: "${key}" must be an object.`,
+      );
+      return undefined;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(record, "default")) {
+      const selected = record.default;
+      if (this.isPlainObject(selected)) {
+        return selected as LocaleTexts;
+      }
+
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: default export must be an object.`,
+      );
+      return undefined;
+    }
+
+    const matchedLocaleKey = this.findLocaleExportKey(record, fileLocale);
+    if (matchedLocaleKey) {
+      const selected = record[matchedLocaleKey];
+      if (this.isPlainObject(selected)) {
+        return selected as LocaleTexts;
+      }
+
+      this.emitI18nSourceWarning(
+        `Ignored ${intent} file at ${filePath}: "${matchedLocaleKey}" export must be an object.`,
+      );
+      return undefined;
+    }
+
+    this.emitI18nSourceWarning(
+      `Ignored ${intent} file at ${filePath}: expected a named export "${intent === "locales" ? "locale" : "texts"}", a locale export matching "${fileLocale}" (e.g. "${fileLocale.toLowerCase()}" or "${fileLocale.toUpperCase()}"), or a default export object.`,
+    );
+    return undefined;
+  }
+
+  private findLocaleExportKey(
+    record: Record<string, unknown>,
+    locale: LocaleTag,
+  ): string | undefined {
+    const expected = this.normalizeLocaleTag(locale);
+    for (const key of Object.keys(record)) {
+      if (this.normalizeLocaleTag(key) === expected) {
+        return key;
+      }
+    }
+    return undefined;
+  }
+
+  private normalizeLocaleTag(value: string): string {
+    return value.trim().replace(/_/g, "-").toLowerCase();
+  }
+
+  private resolveWelcomeMessageForLocale(locale: LocaleTag): string | null {
+    const candidateKeys = ["cli.welcomeMessage", "welcomeMessage"];
+    for (const key of candidateKeys) {
+      const value = this.registry.getLocaleValue(locale, key);
+      if (typeof value === "string") {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private emitI18nSourceWarning(message: string): void {
+    const warning = new RuntimeI18nSourceWarning(message);
+    const reporter = (
+      this.core as unknown as {
+        reportWarning?: (warning: RuntimeI18nSourceWarning) => void;
+      }
+    ).reportWarning;
+
+    if (typeof reporter === "function") {
+      reporter.call(this.core, warning);
+      return;
+    }
+
+    console.warn(warning.message);
   }
 
   private parseSourceFile(filePath: string): LocaleTexts {
@@ -677,7 +951,6 @@ export class PlopNextI18n {
       }
 
       const translatableFields = [
-        "placeholder",
         "description",
         "hint",
         "instructions",

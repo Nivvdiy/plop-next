@@ -290,3 +290,24 @@ export class ForcedLangFallbackWarning extends PlopError {
     Object.setPrototypeOf(this, ForcedLangFallbackWarning.prototype);
   }
 }
+
+/**
+ * Non-fatal warning emitted when an i18n source file is ignored.
+ */
+export class I18nSourceWarning extends PlopError {
+  constructor(message: string) {
+    super(
+      "I18N_SOURCE_WARNING",
+      message,
+      {
+        isWarning: true,
+        shouldExit: false,
+        exitCode: 0,
+        showStackTrace: false,
+        allowLogFile: false,
+      },
+    );
+
+    Object.setPrototypeOf(this, I18nSourceWarning.prototype);
+  }
+}

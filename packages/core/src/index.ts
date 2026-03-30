@@ -24,6 +24,7 @@ export {
   PlopfileExportError,
   UserCancelledError,
   ForcedLangFallbackWarning,
+  I18nSourceWarning,
 } from "./errors/PlopError";
 export type { ActionRunnerOptions, ActionRunResult } from "./ActionRunner";
 export type {

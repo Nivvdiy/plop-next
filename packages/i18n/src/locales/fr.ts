@@ -108,11 +108,19 @@ export const FR_MESSAGES: LocaleTexts = {
     options: "Options :",
     optHelp: "Afficher cette aide",
     optShowTypeNames: "Afficher les noms de type au lieu des abréviations",
+    optInitTitle: "Initialisation du Plopfile",
+    optGenerateTitle: "Générer des fichiers Locale, Texts, Theme",
+    optOthersTitle: "Autres options",
     optInit: "Générer un plopfile.ts de base",
     optInitJs: "Générer un plopfile.js de base",
     optInitTs: "Générer un plopfile.ts de base",
     optDemo: "Générer un générateur de demo dans le plopfile",
     optI18n: "Initialiser le plopfile avec le support i18n",
+    optGenerate: "Générer un modèle : locale | textes | thème",
+    optPath: "Répertoire de sortie de base pour les fichiers de modèle générés",
+    optExtension: "Extension de fichier générée : ts | js | json",
+    optIncludeCustomTexts:
+      "Pour la génération de locale, inclure les clés traduisibles du plopfile",
     optVersion: "Afficher la version courante",
     optForce: "Executer le générateur en mode force",
     optLang: "Forcer la locale d'affichage (ex. en, fr)",
@@ -124,7 +132,6 @@ export const FR_MESSAGES: LocaleTexts = {
     lowDest:
       "Écrire la sortie dans ce dossier au lieu du dossier parent du plopfile",
     lowNoProgress: "Désactiver le spinner de progression",
-    lowCompletion: "Afficher le script de completion shell (bash|zsh|fish)",
     examples: "Exemples :",
   },
 } as const;

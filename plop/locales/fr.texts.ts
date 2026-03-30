@@ -1,4 +1,4 @@
-const Text = {
+const FR = {
   cli: {
     title: "Bienvenue dans le générateur de code PlopNext !",
     welcomeMessage:
@@ -7,7 +7,7 @@ const Text = {
   "react-component": {
     generator: {
       name: "Composant React",
-      description: "Generer un composant React avec tests (via template .hbs)",
+      description: "Générer un composant React avec tests (via template .hbs)",
     },
     componentName: {
       message: "Nom du composant (PascalCase) ?",
@@ -36,7 +36,7 @@ const Text = {
     generator: {
       name: "Utilitaire TypeScript",
       description:
-        "Generer une fonction utilitaire TypeScript (via template .hbs)",
+        "Générer une fonction utilitaire TypeScript (via template .hbs)",
     },
     utilityName: {
       message: "Nom de la fonction utilitaire (camelCase) ?",
@@ -45,9 +45,9 @@ const Text = {
       message: "Que fait cette utilitaire ?",
     },
     category: {
-      message: "Categorie ?",
+      message: "Catégorie ?",
       choices: {
-        string: "chaine",
+        string: "chaîne",
         array: "tableau",
         object: "objet",
         math: "math",
@@ -57,7 +57,7 @@ const Text = {
       },
     },
     inputType: {
-      message: "Type du parametre d'entree ?",
+      message: "Type du paramètre d'entrée ?",
     },
     returnType: {
       message: "Type de retour ?",
@@ -66,7 +66,7 @@ const Text = {
       message: "Inclure les types/interfaces TypeScript ?",
     },
     includeAsync: {
-      message: "Generer aussi une version async ?",
+      message: "Générer aussi une version async ?",
     },
     includeValidation: {
       message: "Inclure une fonction de validation ?",
@@ -76,7 +76,7 @@ const Text = {
     generator: {
       name: "Service Backend",
       description:
-        "Generer un service backend avec methodes (via template .hbs)",
+        "Générer un service backend avec méthodes (via template .hbs)",
     },
     serviceName: {
       message: "Nom du service (PascalCase) ?",
@@ -90,8 +90,8 @@ const Text = {
     environment: {
       message: "Environnement cible ?",
       choices: {
-        development: "developpement",
-        staging: "preproduction",
+        development: "développement",
+        staging: "préproduction",
         production: "production",
       },
     },
@@ -99,13 +99,13 @@ const Text = {
   "demo-all-prompts": {
     generator: {
       name: "Demo Tous les Prompts",
-      description: "Demo montrant tous les types de prompts et fonctionnalites",
+      description: "Demo montrant tous les types de prompts et fonctionnalités",
     },
     projectName: {
       message: "Nom du projet ?",
     },
     generateTests: {
-      message: "Generer les fichiers de test ?",
+      message: "Générer les fichiers de test ?",
     },
     packageManager: {
       message: "Gestionnaire de paquets ?",
@@ -117,7 +117,7 @@ const Text = {
       },
     },
     features: {
-      message: "Quelles fonctionnalites inclure ?",
+      message: "Quelles fonctionnalités inclure ?",
       choices: {
         typescript: "TypeScript",
         eslint: "ESLint",
@@ -127,9 +127,9 @@ const Text = {
       },
     },
     confirmGeneration: {
-      message: "Pret a generer ?",
+      message: "Prêt à générer ?",
       choices: {
-        yes: "Oui, generer maintenant",
+        yes: "Oui, générer maintenant",
         no: "Non, je veux relire",
         config: "Afficher la configuration",
       },
@@ -138,7 +138,7 @@ const Text = {
   "test-file": {
     generator: {
       name: "Fichier de Test",
-      description: "Generer un fichier de test specialise avec les reponses",
+      description: "Générer un fichier de test spécialisé avec les réponses",
     },
     testName: {
       message: "Nom du fichier de test ?",
@@ -155,7 +155,7 @@ const Text = {
       message: "Que tester ?",
       choices: {
         unit: "Tests unitaires",
-        integration: "Tests d'integration",
+        integration: "Tests d'intégration",
         e2e: "Tests E2E",
       },
     },
@@ -165,4 +165,4 @@ const Text = {
   },
 } as const;
 
-export default Text;
+export {FR};
