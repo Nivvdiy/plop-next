@@ -1,6 +1,6 @@
 {
   "name": "@plop-next/i18n",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Internationalization utilities for plop-next",
   "bugs": {
     "url": "https://github.com/nivvdiy/plop-next/issues"
