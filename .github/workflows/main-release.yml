@@ -83,6 +83,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+          registry-url: "https://registry.npmjs.org"
 
       - name: Enable Corepack
         run: corepack enable
@@ -132,7 +133,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v6
@@ -149,8 +150,23 @@ jobs:
       - name: Build package before publish
         run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" build
 
+      - name: Check if version already published
+        id: already-published
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_name="${{ needs.resolve-target.outputs.package_name }}"
+          package_version="${{ needs.resolve-target.outputs.tag_version }}"
+
+          if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "${package_name}@${package_version} is already published on npm."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to npm (Trusted Publishers)
-        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" npm publish --access public --tolerate-republish
+        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" npm publish
 
   release-summary:
     name: Release summary
