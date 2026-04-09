@@ -23,7 +23,7 @@ export type Keybinding = {
 export const BUILT_IN_PROMPT_TYPES = [
   "input",
   "select",
-  "generator-select",
+  "generatorList",
   "list",
   "checkbox",
   "confirm",

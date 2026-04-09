@@ -970,7 +970,7 @@ export class PlopNextCore {
    * Merges in order: defaultTheme → type defaults → user global theme → user type theme.
    */
   private resolvePromptTypeTheme(type: string): Theme {
-    if (type === "generator-select") {
+    if (type === "generatorList") {
       const selectDefaults = PROMPT_TYPE_THEMES["select"];
       const userSelectTheme = this.resolveUserPromptTypeTheme("select");
       const userGeneratorSelectTheme = this.resolveUserPromptTypeTheme(type);

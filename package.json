@@ -1,34 +1,29 @@
 {
   "name": "plop-next",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "build": "turbo run build",
-    "test": "turbo run test --parallel",
-    "lint": "turbo run lint",
-    "format": "prettier --write .",
-    "dev": "node packages/cli/dist/cli.js",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "changeset publish",
-    "prepare": "husky install",
-    "plop-next": "node packages/cli/dist/cli.js"
+  "description": "Monorepo for plop-next packages",
+  "homepage": "https://github.com/nivvdiy/plop-next",
+  "bugs": {
+    "url": "https://github.com/nivvdiy/plop-next/issues"
   },
+  "license": "MIT",
+  "author": "Nivvdiy",
   "repository": {
     "type": "git",
     "url": "https://github.com/nivvdiy/plop-next.git"
   },
-  "bugs": {
-    "url": "https://github.com/nivvdiy/plop-next/issues"
+  "scripts": {
+    "build": "turbo run build",
+    "changeset": "changeset",
+    "dev": "node packages/cli/dist/cli.js",
+    "format": "prettier --write .",
+    "lint": "turbo run lint",
+    "prepare": "husky",
+    "plop-next": "node packages/cli/dist/cli.js",
+    "prepublishOnly": "yarn build",
+    "release": "yarn build && changeset publish",
+    "test": "turbo run test --parallel",
+    "version-packages": "changeset version"
   },
-  "homepage": "https://github.com/nivvdiy/plop-next",
-  "license": "MIT",
-  "engines": {
-    "node": ">=18"
-  },
-  "packageManager": "yarn@4.13.0",
   "devDependencies": {
     "@bartheleway/inquirer-table-multiple": "^1.0.3",
     "@changesets/changelog-github": "^0.6.0",
@@ -37,16 +32,25 @@
     "@plop-next/cli": "workspace:^",
     "@plop-next/i18n": "workspace:^",
     "@types/node": "^25.5.0",
-    "@vitest/eslint-plugin": "^1.6.12",
-    "eslint": "^10.0.3",
+    "@vitest/eslint-plugin": "^1.6.14",
+    "eslint": "^10.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "turbo": "^2.8.17",
+    "turbo": "^2.9.3",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.1",
+    "typescript-eslint": "^8.58.0",
     "yarn": "^1.22.22"
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "packageManager": "yarn@4.13.0",
+  "type": "module",
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --cache --fix",

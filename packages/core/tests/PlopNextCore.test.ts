@@ -113,11 +113,11 @@ describe("PlopNextCore", () => {
     expect(answerStyle?.("hello")).toBe("A:hello");
   });
 
-  it("generator-select uses select theme when no dedicated override exists", async () => {
+  it("generatorList uses select theme when no dedicated override exists", async () => {
     let receivedTheme: unknown;
 
     core.registerPrompt({
-      types: ["generator-select"],
+      types: ["generatorList"],
       async ask(_type, config) {
         receivedTheme = config.theme;
         return "ok";
@@ -132,7 +132,7 @@ describe("PlopNextCore", () => {
       },
     });
 
-    const answer = await core.askPrompt("generator-select", {
+    const answer = await core.askPrompt("generatorList", {
       name: "__generator",
       message: "Select generator",
       choices: [{ name: "Demo", value: "demo" }],
@@ -148,11 +148,11 @@ describe("PlopNextCore", () => {
     expect(descriptionStyle?.("demo")).toBe("S:demo");
   });
 
-  it("generator-select theme can override select theme independently", async () => {
+  it("generatorList theme can override select theme independently", async () => {
     let receivedTheme: unknown;
 
     core.registerPrompt({
-      types: ["generator-select"],
+      types: ["generatorList"],
       async ask(_type, config) {
         receivedTheme = config.theme;
         return "ok";
@@ -165,14 +165,14 @@ describe("PlopNextCore", () => {
           description: (text: string) => `S:${text}`,
         },
       },
-      "generator-select": {
+      generatorList: {
         style: {
           description: (text: string) => `G:${text}`,
         },
       },
     });
 
-    const answer = await core.askPrompt("generator-select", {
+    const answer = await core.askPrompt("generatorList", {
       name: "__generator",
       message: "Select generator",
       choices: [{ name: "Demo", value: "demo" }],

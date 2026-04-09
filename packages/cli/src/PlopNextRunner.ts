@@ -147,10 +147,10 @@ export class PlopNextRunner {
 
       const promptType = typeof type === "string" ? type : "input";
 
-      if (promptType === "generator-select") {
+      if (promptType === "generatorList") {
         throw new InvalidPromptError(
           typeof promptName === "string" ? promptName : String(promptName),
-          'Prompt type "generator-select" is reserved for the internal generator menu and cannot be used in generator prompts.',
+          'Prompt type "generatorList" is reserved for the internal generator menu and cannot be used in generator prompts.',
         );
       }
 
@@ -309,7 +309,7 @@ export class PlopNextRunner {
     ];
 
     try {
-      const selected = await this.core.askPrompt("generator-select", {
+      const selected = await this.core.askPrompt("generatorList", {
         name: "__generator",
         message: `[PLOP] ${this.core.t("cli.selectGenerator", [], "Please choose a generator")}`,
         choices,

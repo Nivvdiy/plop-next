@@ -9,7 +9,7 @@ import type {
 export function createSelectHandler(fn?: InquirerPromptFn): PromptHandler {
   const selectFn = fn ?? (select as unknown as InquirerPromptFn);
   return {
-    types: ["list", "select", "generator-select"],
+    types: ["list", "select", "generatorList"],
 
     async ask(type: string, config: PromptHandlerConfig): Promise<unknown> {
       const {

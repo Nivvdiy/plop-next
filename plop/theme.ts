@@ -125,7 +125,7 @@ const Theme = {
       styleText("gray", `Press ${enterKey} to launch your preferred editor.`),
     maskedText: styleText("gray", "[input is masked]"),
   },
-  "generator-select": {
+  generatorList: {
     style: {
       highlight: (text: string) => styleText(["bold", "blue"], text),
       description: (text: string) => styleText("blue", text),

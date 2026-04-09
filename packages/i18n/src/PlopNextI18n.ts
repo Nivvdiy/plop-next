@@ -749,7 +749,7 @@ export class PlopNextI18n {
       "disabledError",
       "input",
       "select",
-      "generator-select",
+      "generatorList",
       "list",
       "checkbox",
       "confirm",

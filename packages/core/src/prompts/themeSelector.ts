@@ -75,7 +75,7 @@ const BUILT_IN_PROMPT_THEME_SELECTORS: Record<string, PromptThemeSelector> = {
     keybindings: true,
   },
   list: { baseSelector: "select" },
-  "generator-select": { baseSelector: "select" },
+  generatorList: { baseSelector: "select" },
   checkbox: {
     prefix: true,
     spinner: true,

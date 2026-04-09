@@ -72,11 +72,11 @@ describe("templateScaffolds", () => {
     expect(source).toContain("// en: Title");
   });
 
-  it("builds a theme template including generator-select override slot", () => {
+  it("builds a theme template including generatorList override slot", () => {
     const source = buildThemeTemplateSource();
 
     expect(source).toContain("export const Theme");
-    expect(source).toContain('"generator-select": {}');
+    expect(source).toContain('generatorList: {}');
     expect(source).toContain("input: {}");
     expect(source).toContain("rawlist: {}");
   });

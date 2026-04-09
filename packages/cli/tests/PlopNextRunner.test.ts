@@ -11,7 +11,7 @@ type CapturedPrompt = {
 };
 
 describe("PlopNextRunner generator display name translation", () => {
-  it("rejects generator-select when declared in generator prompts", async () => {
+  it("rejects generatorList when declared in generator prompts", async () => {
     const core = {
       getTheme() {
         return { plopNext: {} };
@@ -24,7 +24,7 @@ describe("PlopNextRunner generator display name translation", () => {
           return {
             prompts: [
               {
-                type: "generator-select",
+                type: "generatorList",
                 name: "badPrompt",
                 message: "Should not be allowed",
               },
@@ -57,11 +57,11 @@ describe("PlopNextRunner generator display name translation", () => {
     const runner = new PlopNextRunner(core);
 
     await expect(runner.run("demo")).rejects.toThrow(
-      'Prompt type "generator-select" is reserved for the internal generator menu and cannot be used in generator prompts.',
+      'Prompt type "generatorList" is reserved for the internal generator menu and cannot be used in generator prompts.',
     );
   });
 
-  it("uses generator-select prompt type for generator menu", async () => {
+  it("uses generatorList prompt type for generator menu", async () => {
     let askedType: string | undefined;
 
     const core = {
@@ -86,7 +86,7 @@ describe("PlopNextRunner generator display name translation", () => {
       }
     ).askGeneratorSelection(list);
 
-    expect(askedType).toBe("generator-select");
+    expect(askedType).toBe("generatorList");
   });
 
   it("uses <generator>.generator.name translation when available", async () => {
