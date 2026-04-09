@@ -1,0 +1,22 @@
+{
+  "overrides": [
+    {
+      "files": "*.scss.hbs",
+      "options": {
+        "parser": "scss"
+      }
+    },
+    {
+      "files": "*.ts.hbs",
+      "options": {
+        "parser": "typescript"
+      }
+    },
+    {
+      "files": "*.tsx.hbs",
+      "options": {
+        "parser": "typescript"
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "locale": {
+    "cli": {
+      "selectGenerator": "Choose via scoped locales"
+    }
+  }
+}

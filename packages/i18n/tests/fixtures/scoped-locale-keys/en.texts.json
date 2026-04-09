@@ -1,0 +1,8 @@
+{
+  "en": {
+    "cli": {
+      "selectGenerator": "Choose via locale-key texts"
+    },
+    "welcomeMessage": "English welcome from en.texts"
+  }
+}

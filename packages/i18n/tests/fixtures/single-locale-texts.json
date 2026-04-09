@@ -1,0 +1,8 @@
+{
+  "cli": {
+    "selectGenerator": "Select from single file"
+  },
+  "component": {
+    "description": "Single file component description"
+  }
+}
