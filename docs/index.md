@@ -14,10 +14,22 @@ hero:
       link: /documentation#installation
 
 features:
-  - title: Quick generation
-    details: Scaffold files and folders fast with reusable generators.
-  - title: Team consistency
-    details: Apply shared conventions and structure across your codebase.
-  - title: Prompt-driven flow
-    details: Use interactive prompts to adapt output to each use case.
+  - title: Simple to learn
+    icon: 🎓
+    details: Get productive quickly with a focused one-page getting started flow and practical defaults.
+  - title: Easy to use
+    icon: 🪄
+    details: Run plop-next from your terminal and generate code through a straightforward interactive workflow.
+  - title: Flexible
+    icon: 📎
+    details: Evolve your generators over time with custom prompts, helpers, actions, i18n, and theme support.
+  - title: Always in sync
+    icon: 🔄
+    details: Keep generator logic in your repository so the whole team stays aligned through normal pull updates.
+  - title: Familiar
+    icon: 🤝
+    details: Build templates with Handlebars syntax that most developers already know.
+  - title: Powerful
+    icon: 🚀
+    details: Generate anything from UI files to APIs, tests, scripts, and project boilerplate with repeatable quality.
 ---
