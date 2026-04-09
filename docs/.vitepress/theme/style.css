@@ -137,3 +137,46 @@
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
 }
 
+.VPDoc .package-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.VPDoc .package-badges a,
+.VPDoc .package-badges img {
+  display: block;
+}
+
+.VPDoc .vp-doc h1 {
+  font-size: clamp(2.4rem, 5.2vw, 3.4rem);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 0.08em;
+}
+
+.VPDoc .vp-doc h2 {
+  font-size: clamp(1.75rem, 3.6vw, 2.2rem);
+  font-weight: 800;
+  border-top: 2px solid var(--vp-c-text-1);
+  position: relative;
+}
+
+.VPDoc .vp-doc h2::after {
+  content: "";
+  display: block;
+  width: min(50%, 34rem);
+}
+
+.VPDoc .vp-doc h2::after {
+  border-top: 2px solid var(--vp-c-divider);
+  margin-top: 0.75rem;
+}
+
+.VPDoc .vp-doc .method-alias-separator {
+  display: block;
+  height: 1px;
+  margin: 0.35rem 0;
+  background-color: var(--vp-c-text-3);
+}
