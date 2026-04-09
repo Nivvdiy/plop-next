@@ -1,141 +1,104 @@
-name: Build and Publish on Main
+name: Publish Package on Tag
 
 on:
   push:
-    branches: [main]
+    tags:
+      - cli-V-*
+      - core-V-*
+      - i18n-V-*
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: main-release-${{ github.ref }}
+  group: tag-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  detect-version-changes:
-    name: Detect package version changes
+  resolve-target:
+    name: Resolve target package from tag
     runs-on: ubuntu-latest
     outputs:
-      cli_changed: ${{ steps.detect.outputs.cli_changed }}
-      core_changed: ${{ steps.detect.outputs.core_changed }}
-      i18n_changed: ${{ steps.detect.outputs.i18n_changed }}
-      cli_version: ${{ steps.detect.outputs.cli_version }}
-      core_version: ${{ steps.detect.outputs.core_version }}
-      i18n_version: ${{ steps.detect.outputs.i18n_version }}
+      key: ${{ steps.resolve.outputs.key }}
+      package_name: ${{ steps.resolve.outputs.package_name }}
+      tag_version: ${{ steps.resolve.outputs.tag_version }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Detect changed package versions
-        id: detect
+      - name: Resolve package and validate tag version
+        id: resolve
         shell: bash
         run: |
           set -euo pipefail
 
-          BASE_SHA="${{ github.event.before }}"
-          HEAD_SHA="${{ github.sha }}"
+          tag="${GITHUB_REF_NAME}"
 
-          if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
-            BASE_SHA="$(git rev-list --max-parents=0 HEAD)"
+          case "$tag" in
+            cli-V-*)
+              key="cli"
+              package_name="@plop-next/cli"
+              tag_version="${tag#cli-V-}"
+              ;;
+            core-V-*)
+              key="core"
+              package_name="@plop-next/core"
+              tag_version="${tag#core-V-}"
+              ;;
+            i18n-V-*)
+              key="i18n"
+              package_name="@plop-next/i18n"
+              tag_version="${tag#i18n-V-}"
+              ;;
+            *)
+              echo "Unsupported tag format: $tag"
+              exit 1
+              ;;
+          esac
+
+          manifest="./packages/${key}/package.json"
+          package_version=$(node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(pkg.version);" "$manifest")
+
+          if [[ "$package_version" != "$tag_version" ]]; then
+            echo "Tag version mismatch for ${package_name}: tag=${tag_version}, package.json=${package_version}"
+            exit 1
           fi
 
-          read_version() {
-            local sha="$1"
-            local manifest="$2"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+          echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
 
-            git show "${sha}:${manifest}" 2>/dev/null | node -e "
-              let raw = '';
-              process.stdin.on('data', (chunk) => (raw += chunk));
-              process.stdin.on('end', () => {
-                try {
-                  const json = JSON.parse(raw);
-                  process.stdout.write(json.version ?? '');
-                } catch {
-                  process.stdout.write('');
-                }
-              });
-            "
-          }
-
-          compare_version() {
-            local key="$1"
-            local manifest="$2"
-            local old_version
-            local new_version
-
-            old_version="$(read_version "$BASE_SHA" "$manifest" || true)"
-            new_version="$(read_version "$HEAD_SHA" "$manifest" || true)"
-            echo "${key}_version=$new_version" >> "$GITHUB_OUTPUT"
-
-            if [[ -n "$new_version" && "$old_version" != "$new_version" ]]; then
-              echo "${key}_changed=true" >> "$GITHUB_OUTPUT"
-              echo "$key version changed: ${old_version:-none} -> $new_version"
-            else
-              echo "${key}_changed=false" >> "$GITHUB_OUTPUT"
-              echo "$key version unchanged: ${new_version:-none}"
-            fi
-          }
-
-          compare_version "cli" "packages/cli/package.json"
-          compare_version "core" "packages/core/package.json"
-          compare_version "i18n" "packages/i18n/package.json"
-
-  build-artifacts:
-    name: Build and upload package artifacts
+  build-artifact:
+    name: Build and upload package artifact
     runs-on: ubuntu-latest
-    needs: detect-version-changes
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - key: cli
-            package_name: "@plop-next/cli"
-            changed_output: "cli_changed"
-          - key: core
-            package_name: "@plop-next/core"
-            changed_output: "core_changed"
-          - key: i18n
-            package_name: "@plop-next/i18n"
-            changed_output: "i18n_changed"
+    needs: resolve-target
 
     steps:
       - name: Checkout repository
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/checkout@v5
 
       - name: Setup Node.js
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/setup-node@v6
         with:
           node-version: 24
 
       - name: Enable Corepack
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: corepack enable
 
       - name: Install dependencies
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn install --immutable
 
       - name: Build package
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        run: yarn workspace "${{ matrix.package_name }}" build
+        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" build
 
       - name: Create zip artifact
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
-          out_dir="artifacts/${{ matrix.key }}"
-          package_dir="packages/${{ matrix.key }}"
+          key="${{ needs.resolve-target.outputs.key }}"
+          out_dir="artifacts/${key}"
+          package_dir="packages/${key}"
 
           mkdir -p "$out_dir"
           cp -R "$package_dir/dist" "$out_dir/dist"
@@ -149,215 +112,70 @@ jobs:
             cp "LICENSE" "$out_dir/LICENSE"
           fi
 
-          (cd artifacts && zip -r "../${{ matrix.key }}-dist.zip" "${{ matrix.key }}" >/dev/null)
+          (cd artifacts && zip -r "../${key}-dist.zip" "$key" >/dev/null)
 
       - name: Upload artifact
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.key }}-dist-${{ github.sha }}
-          path: ${{ matrix.key }}-dist.zip
-          if-no-files-found: error
-
-      - name: Record build status
-        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .status
-          cat > ".status/build-status-${{ matrix.key }}.json" <<EOF
-          {"package":"${{ matrix.key }}","status":"${{ job.status }}"}
-          EOF
-
-      - name: Upload build status artifact
-        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-status-${{ matrix.key }}
-          path: .status/build-status-${{ matrix.key }}.json
+          name: ${{ needs.resolve-target.outputs.key }}-dist-${{ github.sha }}
+          path: ${{ needs.resolve-target.outputs.key }}-dist.zip
           if-no-files-found: error
 
   publish-npm:
     name: Publish package to npm
     runs-on: ubuntu-latest
-    needs: detect-version-changes
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - key: cli
-            package_name: "@plop-next/cli"
-            changed_output: "cli_changed"
-          - key: core
-            package_name: "@plop-next/core"
-            changed_output: "core_changed"
-          - key: i18n
-            package_name: "@plop-next/i18n"
-            changed_output: "i18n_changed"
+    needs: [resolve-target, build-artifact]
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/checkout@v5
 
       - name: Setup Node.js for npm publish
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: corepack enable
 
       - name: Install dependencies
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn install --immutable
 
       - name: Build package before publish
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        run: yarn workspace "${{ matrix.package_name }}" build
+        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" build
 
-      - name: Publish to npm
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: yarn workspace "${{ matrix.package_name }}" npm publish --access public --tolerate-republish
-
-      - name: Read package version
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        id: package-version
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(node -p "JSON.parse(require('node:fs').readFileSync('./packages/${{ matrix.key }}/package.json', 'utf8')).version")
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Create and push package tag
-        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="${{ matrix.key }}-V-${{ steps.package-version.outputs.version }}"
-
-          if git ls-remote --tags --exit-code origin "refs/tags/${tag}" >/dev/null 2>&1; then
-            echo "Tag ${tag} already exists on origin."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git tag -a "$tag" -m "Release $tag"
-          git push origin "refs/tags/$tag"
-
-      - name: Record publish status
-        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .status
-          cat > ".status/publish-status-${{ matrix.key }}.json" <<EOF
-          {"package":"${{ matrix.key }}","status":"${{ job.status }}"}
-          EOF
-
-      - name: Upload publish status artifact
-        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: publish-status-${{ matrix.key }}
-          path: .status/publish-status-${{ matrix.key }}.json
-          if-no-files-found: error
+      - name: Publish to npm (Trusted Publishers)
+        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" npm publish --access public --tolerate-republish
 
   release-summary:
     name: Release summary
     runs-on: ubuntu-latest
-    needs: [detect-version-changes, build-artifacts, publish-npm]
+    needs: [resolve-target, build-artifact, publish-npm]
     if: ${{ always() }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Download build status artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: build-status-*
-          path: .status
-          merge-multiple: true
-          if-no-artifact-found: ignore
-
-      - name: Download publish status artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: publish-status-*
-          path: .status
-          merge-multiple: true
-          if-no-artifact-found: ignore
-
       - name: Publish workflow summary
         shell: bash
         env:
-          CLI_CHANGED: ${{ needs.detect-version-changes.outputs.cli_changed }}
-          CORE_CHANGED: ${{ needs.detect-version-changes.outputs.core_changed }}
-          I18N_CHANGED: ${{ needs.detect-version-changes.outputs.i18n_changed }}
-          CLI_VERSION: ${{ needs.detect-version-changes.outputs.cli_version }}
-          CORE_VERSION: ${{ needs.detect-version-changes.outputs.core_version }}
-          I18N_VERSION: ${{ needs.detect-version-changes.outputs.i18n_version }}
+          KEY: ${{ needs.resolve-target.outputs.key }}
+          PACKAGE_NAME: ${{ needs.resolve-target.outputs.package_name }}
+          TAG_VERSION: ${{ needs.resolve-target.outputs.tag_version }}
+          BUILD_RESULT: ${{ needs.build-artifact.result }}
+          PUBLISH_RESULT: ${{ needs.publish-npm.result }}
         run: |
           set -euo pipefail
-
-          status_for_step() {
-            local changed="$1"
-            local status_file="$2"
-
-            if [[ "$changed" != "true" ]]; then
-              echo "skipped (version unchanged)"
-              return
-            fi
-
-            if [[ ! -f "$status_file" ]]; then
-              echo "unknown (status artifact missing)"
-              return
-            fi
-
-            local value
-            value=$(node -e "const fs=require('node:fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(j.status||'unknown');" "$status_file")
-
-            case "$value" in
-              success) echo "success" ;;
-              failure) echo "failure" ;;
-              cancelled) echo "cancelled" ;;
-              skipped) echo "skipped" ;;
-              *) echo "$value" ;;
-            esac
-          }
-
-          tag_status() {
-            local key="$1"
-            local changed="$2"
-            local version="$3"
-
-            if [[ "$changed" != "true" ]]; then
-              echo "not created"
-              return
-            fi
-
-            local tag="${key}-V-${version}"
-            if git ls-remote --tags --exit-code origin "refs/tags/${tag}" >/dev/null 2>&1; then
-              echo "created (${tag})"
-            else
-              echo "missing (${tag})"
-            fi
-          }
 
           {
             echo "## Release summary"
             echo
-            echo "| Package | Version | Version changed | Artifact build/upload | NPM publish | Tag |"
-            echo "| --- | --- | --- | --- | --- | --- |"
-            echo "| cli | ${CLI_VERSION:-n/a} | ${CLI_CHANGED} | $(status_for_step "$CLI_CHANGED" ".status/build-status-cli.json") | $(status_for_step "$CLI_CHANGED" ".status/publish-status-cli.json") | $(tag_status "cli" "$CLI_CHANGED" "$CLI_VERSION") |"
-            echo "| core | ${CORE_VERSION:-n/a} | ${CORE_CHANGED} | $(status_for_step "$CORE_CHANGED" ".status/build-status-core.json") | $(status_for_step "$CORE_CHANGED" ".status/publish-status-core.json") | $(tag_status "core" "$CORE_CHANGED" "$CORE_VERSION") |"
-            echo "| i18n | ${I18N_VERSION:-n/a} | ${I18N_CHANGED} | $(status_for_step "$I18N_CHANGED" ".status/build-status-i18n.json") | $(status_for_step "$I18N_CHANGED" ".status/publish-status-i18n.json") | $(tag_status "i18n" "$I18N_CHANGED" "$I18N_VERSION") |"
+            echo "- Tag: ${GITHUB_REF_NAME}"
+            echo "- Package key: ${KEY}"
+            echo "- Package name: ${PACKAGE_NAME}"
+            echo "- Version: ${TAG_VERSION}"
+            echo "- Build artifact: ${BUILD_RESULT}"
+            echo "- npm publish: ${PUBLISH_RESULT}"
           } >> "$GITHUB_STEP_SUMMARY"
