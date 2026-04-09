@@ -105,27 +105,32 @@ jobs:
           - key: i18n
             package_name: "@plop-next/i18n"
             changed_output: "i18n_changed"
-    if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
 
     steps:
       - name: Checkout repository
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/checkout@v5
 
       - name: Setup Node.js
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/setup-node@v6
         with:
           node-version: 24
 
       - name: Enable Corepack
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: corepack enable
 
       - name: Install dependencies
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn install --immutable
 
       - name: Build package
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn workspace "${{ matrix.package_name }}" build
 
       - name: Create zip artifact
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -147,6 +152,7 @@ jobs:
           (cd artifacts && zip -r "../${{ matrix.key }}-dist.zip" "${{ matrix.key }}" >/dev/null)
 
       - name: Upload artifact
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.key }}-dist-${{ github.sha }}
@@ -154,7 +160,7 @@ jobs:
           if-no-files-found: error
 
       - name: Record build status
-        if: ${{ always() }}
+        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -164,7 +170,7 @@ jobs:
           EOF
 
       - name: Upload build status artifact
-        if: ${{ always() }}
+        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: build-status-${{ matrix.key }}
@@ -188,33 +194,39 @@ jobs:
           - key: i18n
             package_name: "@plop-next/i18n"
             changed_output: "i18n_changed"
-    if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
 
     steps:
       - name: Checkout repository
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/checkout@v5
 
       - name: Setup Node.js for npm publish
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: corepack enable
 
       - name: Install dependencies
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn install --immutable
 
       - name: Build package before publish
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         run: yarn workspace "${{ matrix.package_name }}" build
 
       - name: Publish to npm
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: yarn workspace "${{ matrix.package_name }}" npm publish --access public --tolerate-republish
 
       - name: Read package version
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         id: package-version
         shell: bash
         run: |
@@ -223,6 +235,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Create and push package tag
+        if: ${{ needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -240,7 +253,7 @@ jobs:
           git push origin "refs/tags/$tag"
 
       - name: Record publish status
-        if: ${{ always() }}
+        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -250,7 +263,7 @@ jobs:
           EOF
 
       - name: Upload publish status artifact
-        if: ${{ always() }}
+        if: ${{ always() && needs.detect-version-changes.outputs[matrix.changed_output] == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: publish-status-${{ matrix.key }}
