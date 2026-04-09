@@ -1,6 +1,6 @@
 {
   "name": "@plop-next/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Micro-generator framework CLI",
   "homepage": "https://github.com/nivvdiy/plop-next",
   "bugs": {
