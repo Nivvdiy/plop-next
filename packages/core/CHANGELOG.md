@@ -1,5 +1,11 @@
 # @plop-next/core
 
+## 0.1.2
+
+### Patch Changes
+
+- Rebuild with new github action version
+
 ## 0.1.1
 
 ### Patch Changes

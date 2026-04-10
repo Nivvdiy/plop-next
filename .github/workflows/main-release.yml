@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Resolve package and validate tag version
         id: resolve
@@ -128,8 +128,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve-target, build-artifact]
     permissions:
-      contents: read
       id-token: write
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -166,7 +166,9 @@ jobs:
           fi
 
       - name: Publish to npm (Trusted Publishers)
-        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" npm publish
+        if: ${{ steps.already-published.outputs.already_published != 'true' }}
+        working-directory: packages/${{ needs.resolve-target.outputs.key }}
+        run: npm publish --access public
 
   release-summary:
     name: Release summary

@@ -1,9 +1,9 @@
 {
   "name": "@plop-next/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Core utilities and types for plop-next",
   "bugs": {
-    "url": "https://github.com/nivvdiy/plop-next/issues"
+    "url": "https://github.com/Nivvdiy/plop-next/issues"
   },
   "license": "MIT",
   "author": "Nivvdiy <nivvdiy@gmail.com>",
@@ -14,7 +14,10 @@
   "repository": {
     "directory": "packages/core",
     "type": "git",
-    "url": "https://github.com/nivvdiy/plop-next.git"
+    "url": "https://github.com/Nivvdiy/plop-next.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
