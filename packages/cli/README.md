@@ -71,15 +71,8 @@ export default function plop(plop: PlopNext) {
 }
 ```
 
-## Development scripts
-
-```bash
-yarn workspace @plop-next/cli build
-yarn workspace @plop-next/cli test
-```
-
 ## Links
 
 - Documentation: [https://nivvdiy.github.io/plop-next/](https://nivvdiy.github.io/plop-next/)
-- Repository: [https://github.com/nivvdiy/plop-next](https://github.com/nivvdiy/plop-next)
-- Issues: [https://github.com/nivvdiy/plop-next/issues](https://github.com/nivvdiy/plop-next/issues)
+- Repository: [https://github.com/Nivvdiy/plop-next](https://github.com/Nivvdiy/plop-next)
+- Issues: [https://github.com/Nivvdiy/plop-next/issues](https://github.com/Nivvdiy/plop-next/issues)

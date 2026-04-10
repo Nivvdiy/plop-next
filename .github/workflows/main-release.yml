@@ -214,7 +214,7 @@ jobs:
       - name: Publish to npm (Trusted Publishers)
         if: ${{ steps.already-published.outputs.already_published != 'true' }}
         working-directory: packages/${{ needs.resolve-target.outputs.key }}
-        run: npm publish --access public
+        run: npm publish --access public --ignore-scripts
 
   release-summary:
     name: Release summary

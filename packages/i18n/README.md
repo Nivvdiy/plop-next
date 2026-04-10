@@ -2,36 +2,39 @@
 
 Internationalization plugin for plop-next.
 
-This package adds locale registration and prompt/message localization on top of `@plop-next/core`.
+This package is designed to be used with `@plop-next/cli`.
+
+For normal usage, treat it as a CLI extension layer (not a standalone package).
 
 ## Installation
 
 ```bash
-npm install @plop-next/core @plop-next/i18n
+npm install -D @plop-next/cli @plop-next/i18n
 ```
 
 or:
 
 ```bash
-yarn add @plop-next/core @plop-next/i18n
+yarn add -D @plop-next/cli @plop-next/i18n
 ```
 
-## Quick example
+## Usage with CLI
 
 ```ts
-import { PlopNextCore } from "@plop-next/core";
+import type { PlopNext } from "@plop-next/cli";
 import { PlopNextI18n } from "@plop-next/i18n";
 
-const core = new PlopNextCore();
-const i18n = new PlopNextI18n(core);
+export default function plop(plop: PlopNext) {
+  const i18n = new PlopNextI18n(plop);
 
-i18n.registerLocale("fr", {
-  cli: {
-    selectGenerator: "Choisissez un generateur",
-  },
-});
+  i18n.registerLocale("fr", {
+    cli: {
+      selectGenerator: "Choisissez un generateur",
+    },
+  });
 
-core.useI18n({ force: "fr" });
+  plop.useI18n({ force: "fr" });
+}
 ```
 
 ## Built-in locales
@@ -42,21 +45,8 @@ core.useI18n({ force: "fr" });
 - `pt`
 - `zh`
 
-## Common exports
-
-- `PlopNextI18n`
-- `I18nRegistry`
-- `EN_MESSAGES`, `FR_MESSAGES`, `ES_MESSAGES`, `PT_MESSAGES`, `ZH_MESSAGES`
-
-## Development scripts
-
-```bash
-yarn workspace @plop-next/i18n build
-yarn workspace @plop-next/i18n test
-```
-
 ## Links
 
 - Documentation: [https://nivvdiy.github.io/plop-next/](https://nivvdiy.github.io/plop-next/)
-- Repository: [https://github.com/nivvdiy/plop-next](https://github.com/nivvdiy/plop-next)
-- Issues: [https://github.com/nivvdiy/plop-next/issues](https://github.com/nivvdiy/plop-next/issues)
+- Repository: [https://github.com/Nivvdiy/plop-next](https://github.com/Nivvdiy/plop-next)
+- Issues: [https://github.com/Nivvdiy/plop-next/issues](https://github.com/Nivvdiy/plop-next/issues)
