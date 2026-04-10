@@ -1,5 +1,11 @@
 # @plop-next/core
 
+## 0.1.4
+
+### Patch Changes
+
+- add keywords and change homepage to gh-page for documentation
+
 ## 0.1.3
 
 ### Patch Changes

@@ -1,7 +1,17 @@
 {
   "name": "plop-next",
   "description": "Monorepo for plop-next packages",
-  "homepage": "https://github.com/Nivvdiy/plop-next",
+  "homepage": "https://nivvdiy.github.io/plop-next/",
+  "keywords": [
+    "plop-next",
+    "plop",
+    "generator",
+    "scaffolding",
+    "codegen",
+    "inquirer",
+    "handlebars",
+    "typescript"
+  ],
   "bugs": {
     "url": "https://github.com/Nivvdiy/plop-next/issues"
   },
