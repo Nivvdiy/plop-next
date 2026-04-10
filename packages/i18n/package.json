@@ -1,6 +1,6 @@
 {
   "name": "@plop-next/i18n",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Internationalization utilities for plop-next",
   "bugs": {
     "url": "https://github.com/Nivvdiy/plop-next/issues"
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@inquirer/i18n": "^1.0.2",
-    "@plop-next/core": "workspace:*",
+    "@plop-next/core": "^0.1.3",
     "dlv": "^1.1.3",
     "resolve": "^1.22.11",
     "tinyglobby": "^0.2.15"

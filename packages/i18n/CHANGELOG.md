@@ -1,5 +1,11 @@
 # @plop-next/i18n
 
+## 0.1.4
+
+### Patch Changes
+
+- Fix workspace:\* reference
+
 ## 0.1.3
 
 ### Patch Changes

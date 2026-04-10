@@ -211,6 +211,16 @@ jobs:
             echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate manifest for npm publish
+        if: ${{ steps.already-published.outputs.already_published != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="${{ needs.resolve-target.outputs.key }}"
+          manifest="packages/${key}/package.json"
+
+          node -e "const fs=require('node:fs'); const path=process.argv[1]; const pkg=JSON.parse(fs.readFileSync(path,'utf8')); const fields=['dependencies','peerDependencies','optionalDependencies']; const offenders=[]; for (const field of fields) { const map=pkg[field]||{}; for (const [name,version] of Object.entries(map)) { if (typeof version === 'string' && version.startsWith('workspace:')) offenders.push(field + '.' + name + '=' + version); } } if (offenders.length) { console.error('workspace: protocol found in published manifest:'); for (const item of offenders) console.error('- ' + item); process.exit(1); } console.log('Manifest OK for npm publish: no workspace: protocols.');" "$manifest"
+
       - name: Publish to npm (Trusted Publishers)
         if: ${{ steps.already-published.outputs.already_published != 'true' }}
         working-directory: packages/${{ needs.resolve-target.outputs.key }}
