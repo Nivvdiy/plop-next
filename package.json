@@ -1,15 +1,15 @@
 {
   "name": "plop-next",
   "description": "Monorepo for plop-next packages",
-  "homepage": "https://github.com/nivvdiy/plop-next",
+  "homepage": "https://github.com/Nivvdiy/plop-next",
   "bugs": {
-    "url": "https://github.com/nivvdiy/plop-next/issues"
+    "url": "https://github.com/Nivvdiy/plop-next/issues"
   },
   "license": "MIT",
   "author": "Nivvdiy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nivvdiy/plop-next.git"
+    "url": "https://github.com/Nivvdiy/plop-next.git"
   },
   "scripts": {
     "build": "turbo run build",
