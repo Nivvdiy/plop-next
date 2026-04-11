@@ -11,6 +11,36 @@ type CapturedPrompt = {
 };
 
 describe("PlopNextRunner generator display name translation", () => {
+  it("supports promise values for prompt when", async () => {
+    const runner = new PlopNextRunner({} as unknown as PlopNextCore);
+
+    const shouldAsk = await (
+      runner as unknown as {
+        resolveWhen(
+          when: unknown,
+          answers: Record<string, unknown>,
+        ): Promise<boolean>;
+      }
+    ).resolveWhen(Promise.resolve(false), {});
+
+    expect(shouldAsk).toBe(false);
+  });
+
+  it("supports async callbacks for prompt when", async () => {
+    const runner = new PlopNextRunner({} as unknown as PlopNextCore);
+
+    const shouldAsk = await (
+      runner as unknown as {
+        resolveWhen(
+          when: unknown,
+          answers: Record<string, unknown>,
+        ): Promise<boolean>;
+      }
+    ).resolveWhen(async () => Promise.resolve(true), {});
+
+    expect(shouldAsk).toBe(true);
+  });
+
   it("rejects generatorList when declared in generator prompts", async () => {
     const core = {
       getTheme() {

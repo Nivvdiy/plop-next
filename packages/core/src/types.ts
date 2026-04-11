@@ -250,8 +250,11 @@ export interface PlopPromptBase {
   default?: unknown | ((answers: Record<string, unknown>) => unknown | Promise<unknown>);
   /** Filter the user input before storing in answers. */
   filter?: (value: unknown, answers?: Record<string, unknown>) => unknown;
-  /** Show or hide prompt based on condition or callback. */
-  when?: boolean | ((answers: Record<string, any>) => boolean);
+  /** Show or hide prompt based on condition or callback (sync or async). */
+  when?:
+    | boolean
+    | Promise<boolean>
+    | ((answers: Record<string, unknown>) => boolean | Promise<boolean>);
   /** Force prompt even if answer already exists. */
   askAnswered?: boolean;
 }
