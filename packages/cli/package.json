@@ -1,6 +1,6 @@
 {
   "name": "@plop-next/cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Micro-generator framework CLI",
   "homepage": "https://nivvdiy.github.io/plop-next/",
   "keywords": [
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.2",
-    "@plop-next/core": "^0.1.4",
+    "@plop-next/core": "^0.1.5",
     "interpret": "^3.1.1",
     "liftoff": "^5.0.1",
     "nanospinner": "^1.2.2",

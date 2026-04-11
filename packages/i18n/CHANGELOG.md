@@ -1,5 +1,11 @@
 # @plop-next/i18n
 
+## 0.1.6
+
+### Patch Changes
+
+- feat(cli,core): restore async prompt when compatibility
+
 ## 0.1.5
 
 ### Patch Changes

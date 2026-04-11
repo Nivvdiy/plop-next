@@ -1,5 +1,11 @@
 # @plop-next/core
 
+## 0.1.5
+
+### Patch Changes
+
+- feat(cli,core): restore async prompt when compatibility
+
 ## 0.1.4
 
 ### Patch Changes
