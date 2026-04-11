@@ -620,7 +620,23 @@ export class PlopNextRunner {
       return Boolean(await when(answers));
     }
 
+    if (this.isPromiseLike(when)) {
+      return Boolean(await when);
+    }
+
     return true;
+  }
+
+  private isPromiseLike<T = unknown>(value: unknown): value is PromiseLike<T> {
+    if (!value) {
+      return false;
+    }
+
+    if (typeof value !== "object" && typeof value !== "function") {
+      return false;
+    }
+
+    return typeof (value as { then?: unknown }).then === "function";
   }
 
   private isPromptCancelled(error: unknown): boolean {
