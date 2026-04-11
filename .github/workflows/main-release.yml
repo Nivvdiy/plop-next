@@ -17,17 +17,14 @@ concurrency:
 
 jobs:
   resolve-target:
-    name: Resolve target package from tag
+    name: Resolve target package and version from tag
     runs-on: ubuntu-latest
     outputs:
       key: ${{ steps.resolve.outputs.key }}
       package_name: ${{ steps.resolve.outputs.package_name }}
-      tag_version: ${{ steps.resolve.outputs.tag_version }}
+      version: ${{ steps.resolve.outputs.version }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
       - name: Resolve package and validate tag version
         id: resolve
         shell: bash
@@ -40,17 +37,17 @@ jobs:
             cli-V-*)
               key="cli"
               package_name="@plop-next/cli"
-              tag_version="${tag#cli-V-}"
+              version="${tag#cli-V-}"
               ;;
             core-V-*)
               key="core"
               package_name="@plop-next/core"
-              tag_version="${tag#core-V-}"
+              version="${tag#core-V-}"
               ;;
             i18n-V-*)
               key="i18n"
               package_name="@plop-next/i18n"
-              tag_version="${tag#i18n-V-}"
+              version="${tag#i18n-V-}"
               ;;
             *)
               echo "Unsupported tag format: $tag"
@@ -58,20 +55,17 @@ jobs:
               ;;
           esac
 
-          manifest="./packages/${key}/package.json"
-          package_version=$(node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(pkg.version);" "$manifest")
-
-          if [[ "$package_version" != "$tag_version" ]]; then
-            echo "Tag version mismatch for ${package_name}: tag=${tag_version}, package.json=${package_version}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag version must be in x.x.x format. Received: $version"
             exit 1
           fi
 
           echo "key=$key" >> "$GITHUB_OUTPUT"
           echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
-          echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  build-artifact:
-    name: Build and upload package artifact
+  build-package:
+    name: Build package once
     runs-on: ubuntu-latest
     needs: resolve-target
 
@@ -90,6 +84,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Align package version from tag
+        run: yarn workspace "${{ needs.resolve-target.outputs.package_name }}" version ${{ needs.resolve-target.outputs.version }} --no-git-tag-version
 
       - name: Build package
         shell: bash
@@ -117,13 +114,16 @@ jobs:
               ;;
           esac
 
-      - name: Create zip artifact
+      - name: Run tests
+        run: yarn test
+
+      - name: Prepare publish bundle
         shell: bash
         run: |
           set -euo pipefail
           key="${{ needs.resolve-target.outputs.key }}"
-          out_dir="artifacts/${key}"
           package_dir="packages/${key}"
+          out_dir="build-bundle/${key}"
 
           mkdir -p "$out_dir"
           cp -R "$package_dir/dist" "$out_dir/dist"
@@ -137,7 +137,33 @@ jobs:
             cp "LICENSE" "$out_dir/LICENSE"
           fi
 
-          (cd artifacts && zip -r "../${key}-dist.zip" "$key" >/dev/null)
+      - name: Upload build bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bundle-${{ needs.resolve-target.outputs.key }}-${{ github.sha }}
+          path: build-bundle/${{ needs.resolve-target.outputs.key }}
+          if-no-files-found: error
+
+  zip-package:
+    name: Zip package and create GitHub release
+    runs-on: ubuntu-latest
+    needs: [resolve-target, build-package]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: build-bundle-${{ needs.resolve-target.outputs.key }}-${{ github.sha }}
+          path: build-bundle
+
+      - name: Create zip artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="${{ needs.resolve-target.outputs.key }}"
+          (cd build-bundle && zip -r "../${key}-dist.zip" "$key" >/dev/null)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -146,55 +172,34 @@ jobs:
           path: ${{ needs.resolve-target.outputs.key }}-dist.zip
           if-no-files-found: error
 
+      - name: Create GitHub Release and upload zip
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: ${{ needs.resolve-target.outputs.key }}-dist.zip
+          fail_on_unmatched_files: true
+
   publish-npm:
     name: Publish package to npm
     runs-on: ubuntu-latest
-    needs: [resolve-target, build-artifact]
+    needs: [resolve-target, build-package]
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Build package before publish
-        shell: bash
-        run: |
-          set -euo pipefail
-          key="${{ needs.resolve-target.outputs.key }}"
-
-          # Build dependency chain first so tsup can resolve workspace d.ts exports.
-          case "$key" in
-            core)
-              yarn workspace "@plop-next/core" build
-              ;;
-            i18n)
-              yarn workspace "@plop-next/core" build
-              yarn workspace "@plop-next/i18n" build
-              ;;
-            cli)
-              yarn workspace "@plop-next/core" build
-              yarn workspace "@plop-next/i18n" build
-              yarn workspace "@plop-next/cli" build
-              ;;
-            *)
-              echo "Unsupported package key: $key"
-              exit 1
-              ;;
-          esac
+      - name: Download build bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: build-bundle-${{ needs.resolve-target.outputs.key }}-${{ github.sha }}
+          path: build-bundle
 
       - name: Check if version already published
         id: already-published
@@ -202,7 +207,7 @@ jobs:
         run: |
           set -euo pipefail
           package_name="${{ needs.resolve-target.outputs.package_name }}"
-          package_version="${{ needs.resolve-target.outputs.tag_version }}"
+          package_version="${{ needs.resolve-target.outputs.version }}"
 
           if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
             echo "already_published=true" >> "$GITHUB_OUTPUT"
@@ -217,19 +222,19 @@ jobs:
         run: |
           set -euo pipefail
           key="${{ needs.resolve-target.outputs.key }}"
-          manifest="packages/${key}/package.json"
+          manifest="build-bundle/${key}/package.json"
 
           node -e "const fs=require('node:fs'); const path=process.argv[1]; const pkg=JSON.parse(fs.readFileSync(path,'utf8')); const fields=['dependencies','peerDependencies','optionalDependencies']; const offenders=[]; for (const field of fields) { const map=pkg[field]||{}; for (const [name,version] of Object.entries(map)) { if (typeof version === 'string' && version.startsWith('workspace:')) offenders.push(field + '.' + name + '=' + version); } } if (offenders.length) { console.error('workspace: protocol found in published manifest:'); for (const item of offenders) console.error('- ' + item); process.exit(1); } console.log('Manifest OK for npm publish: no workspace: protocols.');" "$manifest"
 
       - name: Publish to npm (Trusted Publishers)
         if: ${{ steps.already-published.outputs.already_published != 'true' }}
-        working-directory: packages/${{ needs.resolve-target.outputs.key }}
+        working-directory: build-bundle/${{ needs.resolve-target.outputs.key }}
         run: npm publish --access public --ignore-scripts
 
   release-summary:
     name: Release summary
     runs-on: ubuntu-latest
-    needs: [resolve-target, build-artifact, publish-npm]
+    needs: [resolve-target, build-package, zip-package, publish-npm]
     if: ${{ always() }}
 
     steps:
@@ -238,8 +243,9 @@ jobs:
         env:
           KEY: ${{ needs.resolve-target.outputs.key }}
           PACKAGE_NAME: ${{ needs.resolve-target.outputs.package_name }}
-          TAG_VERSION: ${{ needs.resolve-target.outputs.tag_version }}
-          BUILD_RESULT: ${{ needs.build-artifact.result }}
+          VERSION: ${{ needs.resolve-target.outputs.version }}
+          BUILD_RESULT: ${{ needs.build-package.result }}
+          ZIP_RESULT: ${{ needs.zip-package.result }}
           PUBLISH_RESULT: ${{ needs.publish-npm.result }}
         run: |
           set -euo pipefail
@@ -250,7 +256,8 @@ jobs:
             echo "- Tag: ${GITHUB_REF_NAME}"
             echo "- Package key: ${KEY}"
             echo "- Package name: ${PACKAGE_NAME}"
-            echo "- Version: ${TAG_VERSION}"
-            echo "- Build artifact: ${BUILD_RESULT}"
+            echo "- Version: ${VERSION}"
+            echo "- Build: ${BUILD_RESULT}"
+            echo "- Zip and release: ${ZIP_RESULT}"
             echo "- npm publish: ${PUBLISH_RESULT}"
           } >> "$GITHUB_STEP_SUMMARY"
