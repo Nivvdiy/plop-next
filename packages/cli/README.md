@@ -1,11 +1,25 @@
 # @plop-next/cli
 
-CLI package for plop-next.
+[![npm version](https://img.shields.io/npm/v/@plop-next/cli)](https://www.npmjs.com/package/@plop-next/cli)
+![downloads](https://img.shields.io/npm/dw/@plop-next/cli)
+![license](https://img.shields.io/npm/l/@plop-next/cli)
+![types](https://img.shields.io/npm/types/@plop-next/i18n)
+![node](https://img.shields.io/node/v/@plop-next/cli)
 
-This package provides:
+[![docs](https://img.shields.io/badge/docs-online-blue)](https://nivvdiy.github.io/plop-next/)
 
-- the `plop-next` command line interface
-- TypeScript-friendly public types for your plopfile
+CLI for **plop-next** — a modern, type-safe generator system.
+
+---
+
+## Features
+
+- Interactive CLI (`plop-next`)
+- TypeScript-first experience
+- Fully extensible
+- Plugin system support
+
+---
 
 ## Installation
 
@@ -20,6 +34,8 @@ or:
 ```bash
 yarn add -D @plop-next/cli
 ```
+
+---
 
 ## Basic usage
 
@@ -44,6 +60,8 @@ Then run:
 ```bash
 npm run plop-next
 ```
+
+---
 
 ## Type-safe plopfile example
 
@@ -70,6 +88,15 @@ export default function plop(plop: PlopNext) {
   });
 }
 ```
+
+---
+
+## Ecosystem
+
+- @plop-next/core → internal engine
+- @plop-next/i18n → internationalization plugin
+
+---
 
 ## Links
 

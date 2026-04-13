@@ -1,10 +1,23 @@
 # @plop-next/i18n
 
-Internationalization plugin for plop-next.
+[![npm version](https://img.shields.io/npm/v/@plop-next/i18n)](https://www.npmjs.com/package/@plop-next/i18n)
+![downloads](https://img.shields.io/npm/dw/@plop-next/i18n)
+![license](https://img.shields.io/npm/l/@plop-next/i18n)
+![types](https://img.shields.io/npm/types/@plop-next/i18n)
 
-This package is designed to be used with `@plop-next/cli`.
+[![docs](https://img.shields.io/badge/docs-online-blue)](https://nivvdiy.github.io/plop-next/documentation.html#internationalization)
 
-For normal usage, treat it as a CLI extension layer (not a standalone package).
+Internationalization plugin for **plop-next**.
+
+---
+
+## Features
+
+- Multi-language CLI prompts
+- Built-in locales
+- Easy extension system
+
+---
 
 ## Installation
 
@@ -17,6 +30,8 @@ or:
 ```bash
 yarn add -D @plop-next/cli @plop-next/i18n
 ```
+
+---
 
 ## Usage with CLI
 
@@ -37,6 +52,8 @@ export default function plop(plop: PlopNext) {
 }
 ```
 
+---
+
 ## Built-in locales
 
 - `en`
@@ -44,6 +61,15 @@ export default function plop(plop: PlopNext) {
 - `fr`
 - `pt`
 - `zh`
+
+---
+
+## Role in ecosystem
+
+- Plugin layer for `@plop-next/cli`
+- Optional but powerful extension
+
+---
 
 ## Links
 

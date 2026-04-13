@@ -1,8 +1,48 @@
-# Plop-Next
+# plop-next
 
-Plop-Next is a micro-generator framework for scaffolding files and text-based project structures with consistent conventions.
+[![CI](https://github.com/Nivvdiy/plop-next/actions/workflows/main-release.yml/badge.svg)](https://github.com/Nivvdiy/plop-next/actions)
+[![docs](https://img.shields.io/badge/docs-online-blue)](https://nivvdiy.github.io/plop-next/)
+[![license](https://img.shields.io/github/license/Nivvdiy/plop-next)](https://github.com/Nivvdiy/plop-next/blob/main/LICENSE.md)
 
-It is inspired by Plop philosophy and rebuilt from scratch with a modern stack, including current Inquirer prompt workflows.
+![node](https://img.shields.io/node/v/@plop-next/cli)
+![release](https://img.shields.io/badge/release-automated-brightgreen)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Nivvdiy/plop-next/pulls)
+
+[![stars](https://img.shields.io/github/stars/Nivvdiy/plop-next)](https://github.com/Nivvdiy/plop-next/stargazers)
+[![issues](https://img.shields.io/github/issues/Nivvdiy/plop-next)](https://github.com/Nivvdiy/plop-next/issues)
+[![last commit](https://img.shields.io/github/last-commit/Nivvdiy/plop-next)](https://github.com/Nivvdiy/plop-next/commits)
+
+[![monorepo](https://img.shields.io/badge/monorepo-plop--next-blue)](https://github.com/Nivvdiy/plop-next)
+![packages](https://img.shields.io/badge/packages-3-blue)
+
+[![inquirer](https://img.shields.io/badge/powered%20by-Inquirer%20prompt-blue)](https://github.com/SBoudrias/Inquirer.js/)
+[![handlebars](https://img.shields.io/badge/templating-handlebars-orange)](https://github.com/handlebars-lang/handlebars.js)
+![typescript](https://img.shields.io/badge/typescript-ready-blue)
+
+> A modern, extensible and type-safe generator system.
+
+---
+
+## ✨ What is plop-next?
+
+**plop-next** is a micro-generator framework for scaffolding files and text-based project structures with consistent conventions.
+
+Inspired by Plop, rebuilt from scratch with:
+
+- modern architecture
+- TypeScript-first design
+- extensible plugin system
+- up-to-date prompt workflows (powered by Inquirer)
+
+---
+
+## 📦 Packages
+
+- `@plop-next/cli` → CLI interface
+- `@plop-next/core` → internal engine
+- `@plop-next/i18n` → internationalization plugin
+
+---
 
 ## Full Documentation
 
@@ -66,6 +106,8 @@ plop-next component -- --name "MyButton" --type ui
 plop-next component --force
 ```
 
+---
+
 ## CLI Essentials
 
 ### Init
@@ -116,6 +158,8 @@ Generated files:
 - `texts` -> `locales/<locale>.texts.<ext>`
 - `theme` -> `theme.<ext>`
 
+---
+
 ## API Summary
 
 Main registration methods:
@@ -133,6 +177,8 @@ Useful runtime/config methods:
 - `showWelcomeMessage(show)` and `showTitle(show)`
 - `getGenerator(name)` and `getGeneratorList()`
 
+---
+
 ## Built-in Actions
 
 Plop-Next includes four built-in action types:
@@ -147,12 +193,16 @@ Also supported in `actions` arrays:
 - function actions `(answers, config, plopNext) => string | Promise<string>`
 - comment strings (logged, no file operation)
 
+---
+
 ## Built-in Helpers
 
 Built-in helpers include:
 
 - case helpers: `camelCase`, `pascalCase`, `dashCase`, `snakeCase`, `titleCase`, etc.
 - `pkg` helper to read values from the nearest `package.json`
+
+---
 
 ## Internationalization Summary
 
@@ -167,6 +217,8 @@ Typical flow:
 
 Built-in locales include `en`, `fr`, `es`, `pt`, `zh`.
 
+---
+
 ## Theming Summary
 
 Set a theme with `setTheme(objectOrPath)`.
@@ -178,6 +230,8 @@ Theme source can be:
 - theme directory (merged)
 
 Theme controls prompt visuals and Plop-Next CLI rendering, including menu, action logs, errors, icons, and style functions.
+
+---
 
 ## Advanced Usage
 
